@@ -1,0 +1,53 @@
+{
+  "name": "eggnog-lang",
+  "displayName": "eggnog++",
+  "description": "Syntax highlighting for eggnog++",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "eggnog",
+        "aliases": [
+          "eggnog++",
+          "eggnog",
+          "egg"
+        ],
+        "extensions": [
+          ".egg"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "eggnog",
+        "scopeName": "source.eggnog",
+        "path": "./syntaxes/eggnog.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.eggnog.codeblock",
+        "path": "./syntaxes/eggnog.markdown.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.eggnog": "eggnog"
+        }
+      }
+    ],
+    "configurationDefaults": {
+      "[eggnog]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+        "editor.detectIndentation": false
+      }
+    }
+  }
+}
