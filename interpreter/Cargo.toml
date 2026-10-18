@@ -1,0 +1,7 @@
+[package]
+name = "eggnog"
+version = "0.1.0"
+edition = "2024"
+description = "Tree-walking interpreter for eggnog++"
+
+[dependencies]

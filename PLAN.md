@@ -38,7 +38,17 @@ A small, fast, Rust-flavored language for solving Advent of Code puzzles.
 ## Status
 
 - **Step 1 (design on paper) is done** (2026-10-18). `SPEC.md` holds every decision. The examples are `examples/BFS.md` (flood fill, queue BFS, functional level-by-level BFS), `examples/Dijkstra.md` (MinQueue) and `examples/Recursion.md` (2023 d23 part 1: a backtracking DFS plus a memoized version that relies on the maze being acyclic). Iterative DFS = BFS with `Stack`, so it has no separate example.
-- **Current step:** 2, the interpreter. Still open from step 1, to settle when the interpreter hits them: shifts by ≥ 64 bits and out-of-range `float as int` (Claude proposed trapping), `match` / if-expressions, `memo fun` with collection parameters (Claude proposed a compile error), grid rotate/flip names, the `test` syntax details.
+- **Current step:** 2, the interpreter. Filip writes the code, and Claude reviews, explains and challenges (Claude only did the boilerplate). The project is in `interpreter/` (crate `eggnog`, no dependencies):
+  - `src/error.rs`: `Span` plus `Error` with `render` (source line and `^^^`). Done.
+  - `src/token.rs`, `src/ast.rs`, `src/eval.rs`: minimal types for slice 1, to be grown by Filip.
+  - `src/lexer.rs`: helpers done, `run()` is `todo!()`. Unit tests describe slice 1 plus INDENT/DEDENT.
+  - `src/parser.rs`, `eval::run`: `todo!()`.
+  - `src/main.rs`: CLI `eggnog run|tokens|ast <file> [input]`. Done.
+  - `tests/programs.rs`: golden tests, `tests/programs/NAME.egg` + `NAME.expected` (+ optional `NAME.input`; `error: …` for expected failures).
+  - `GUIDE.md`: pipeline overview, the 11-slice roadmap, and a step-by-step for slice 1 (lexer with INDENT/DEDENT, precedence climbing, checked arithmetic).
+  - The slice-1 tests were validated against a throwaway reference implementation, which was not committed.
+  - **Progress:** slice 1 not started.
+- Step 1 leftovers, to settle when the interpreter hits them: shifts by ≥ 64 bits and out-of-range `float as int` (Claude proposed trapping), `match` / if-expressions, `memo fun` with collection parameters (Claude proposed a compile error), grid rotate/flip names, the `test` syntax details.
 - Toolchain checked (2026-10-18): rustc/cargo 1.99.1, Xcode installed, arm64.
 
 ## Tooling
