@@ -18,6 +18,15 @@ Only the built-in containers take type parameters: `Vec<T>`, `Map<K, V>`, `Set<T
 ### Characters and strings
 
 - `char` is a single byte, meant for ASCII. There is no Unicode support.
+- `s.split_once(sep)` → a pair `(before, after)` of strings. Traps if `sep` doesn't occur.
+- `s.len()`, `s.starts_with(prefix, at = 0)` (does `prefix` occur at position `at`?), `s[i]` → `char`, and `s[a..b]` / `s[a..]` → a new `string`. Slicing copies, as everything does under value semantics.
+- `s.lines()`: a lazy chain of the lines of `s`, without their `\n` / `\r\n`.
+- `s.ints()`: a lazy chain of every integer in `s`, skipping everything else. A `-` counts as a minus sign only when it directly precedes a digit and doesn't follow one: `"x=-2, y=7"` → `-2, 7`, but `"2-4,6-8"` → `2, 4, 6, 8` (ranges like AoC 2022 d4). Out-of-range numbers trap.
+- `s.digits()`: a lazy chain of every digit char in `s` as an `int`, skipping all other chars: `"a1b22".digits()` → `1, 2, 2`. It's the single-digit counterpart of `ints()`.
+- `n.digits()` on an `int`: its decimal digits, most significant first, ignoring the sign: `1204.digits()` → `1, 2, 0, 4`, and `0.digits()` → `0`. Lazy.
+- `n.to_string()`: an int's decimal text (allocates, hence `to_`).
+- `c.is_digit()` is true for `'0'`…`'9'`, and `c.is_letter()` for `'a'`…`'z'` and `'A'`…`'Z'`. `c.digit()` turns `'7'` into `7` and traps on any other char.
+- Strings can be iterated directly (`for c in s:`). `s.chars()` is the same as a lazy chain, and `s.count(c)` counts occurrences of a char.
 - `c.dir()` maps an arrow (`^ > v <`) or a letter (`U R D L`) to `Up`/`Right`/`Down`/`Left`, and traps on any other char.
 - A string is a sequence of bytes, so indexing it (`s[i]`) is O(1) and returns a `char`.
 
@@ -35,6 +44,7 @@ Only the built-in containers take type parameters: `Vec<T>`, `Map<K, V>`, `Set<T
   - `positions()`: all points in row-major order (lazy)
   - `rows()` / `cols()`: the grid's size
   - `print()`: prints the grid for debugging
+  - `to_string()`: the rows joined with `\n`, the same text `print()` shows
   - `Grid(rows, cols, fill)`: a new grid filled with one value
   - rotate/flip: names to be decided
 - Assigning a grid copies it (value semantics): `let next = grid`.
@@ -43,20 +53,28 @@ Only the built-in containers take type parameters: `Vec<T>`, `Map<K, V>`, `Set<T
 
 - **A program file is a script.** Its top-level statements are the body of an implicit `solve(input)` function.
 - `input` is a predefined `string`, read by the runner from a file or stdin.
-- The value of the last expression is the answer: an `int`, a `string`, or a pair of those (`(part1, part2)`). A single value means only one part (while hacking on part 1, or on day 25). A top-level `return` ends the program early with an answer.
+- **One file per part** (e.g. `day01_part1.egg`, `day01_part2.egg`). Code shared between the parts is copied. Shared helpers should move into the standard library instead (see PLAN.md, stdlib principle).
+- The value of the last expression is the answer: an `int` or a `string`. A string answer may span several lines (e.g. a drawn screen), and the runner prints it as is. A top-level `return` ends the program early with an answer.
 - Top-level `fun`s that use script variables are local closures (see Local functions). Top-level `fun`s that don't are plain functions that `test` blocks can call.
 
-### Tests (proposed)
+### Input
+
+The runner strips the single trailing newline (`
+` or `
+`) from `input`. Every AoC input ends with one.
+
+### Tests
 
 ```egg
-test "example.txt" == (36, 81)     # runs the whole script on that file, with a fresh state
-test "input.txt" == (552, 1225)
+test "(())" == 0                       # a string literal is the input itself
+test file("example.txt") == 36        # file(...) reads the input from a file, relative to the .egg file
+test file("input.txt") == 552
 
-test "score":                      # a unit test of a plain function
+test "score":                          # a named block is a unit test of a plain function
   assert score('a') == 1
 ```
 
-`eggnog test day10.egg` runs them. Each input test runs the script from scratch, including empty memo caches.
+`eggnog test day10.egg` runs them. Each input test runs the script from scratch, including empty memo caches. Inline and file inputs get the same trailing-newline stripping as `input`. (The form `test "name":` with a block is still a proposal.)
 
 ## Built-in constants
 
@@ -79,9 +97,22 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 - `Map(default = v)` returns `v` for a missing key, so `counts[k] += 1` works. Reading a missing key doesn't insert it.
 - `k in m` checks whether a key is present.
 
+### Lists
+
+- `[a, b, c]` literals, and `[]` for an empty list (the element type is inferred).
+- `xs.push(x)`, `xs[i]`, `xs.len()`. `xs.first()` / `xs.last()` are maybe-values, so they trap on an empty list.
+- `[x] * n` is a list of `n` copies of `x`. Under value semantics the copies are independent: `[Stack()] * 3` is three separate stacks (unlike Python's `[[]] * 3`).
+- Slicing: `xs[a..b]`, `xs[a..]`, `xs[..b]` → a new list (a copy).
+- `xs.rev()` is a lazy chain in reverse order. `rev()` exists only on lists, strings and ranges, not on other chains.
+- **Indexing gives a place, not a copy.** `xs[i].push(x)`, `xs[i] += 1` and `grid[p] = '#'` change the element inside the container. The same goes for nested places like `xs[i][j]` and `m[k].push(x)`.
+- Destructuring: `let [a, b, c] = xs` binds the elements of a list and traps if the length doesn't match. Typical use: `let [n, from, to] = line.ints().to_list()`.
+
 ### Queue and Stack
 
 - `Queue`: first in, first out. `Stack`: last in, first out. Both have `push(x)`, and `pop()` returns a maybe-value.
+- `stack.top()` returns the top element without removing it (a maybe-value).
+- `stack.pop_many(n)` removes the top `n` elements and returns them as a list in stack order (bottom to top). It traps if the stack has fewer than `n`.
+- `stack.push_all(xs)` pushes every element of a list or chain, in order. So `a.push_all(b.pop_many(n))` moves a block and keeps its order, and `.rev()` in between reverses it.
 - Swapping `Queue` for `Stack` turns the iterative BFS into an iterative DFS.
 
 ### MinQueue
@@ -95,9 +126,19 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 ## Chains
 
 - `map`, `filter`, `flat_map`, ranges (`0..`) and similar are **lazy**: they process one element at a time and build no intermediate collections. The compiler fuses a chain into nested loops.
-- A chain can't be stored (it holds lambdas), so it must be consumed in the expression that builds it: by a terminal (`sum`, `count`, `any`, `min`, `max`, …), by `for x in chain:`, or by an explicit `to_list()` / `to_set()` / `to_map()`. Assigning a bare chain is a compile error.
+- A chain can't be stored (it holds lambdas), so it must be consumed in the expression that builds it: by a terminal (`sum`, `count`, `any`, `min`, `max`, …), by `for x in chain:`, or by an explicit `to_list()` / `to_set()` / `to_map()`, or `to_string(sep = "")`, which joins a chain of chars or strings into one string: `rows.to_string(sep = "\n")`. Assigning a bare chain is a compile error.
 - Side effects in lambdas happen in element order.
+- Ranges: `a..b` excludes `b`, `a..=b` includes it, `a..` never ends. Ranges are lazy chains.
+- `scan(init, f)` yields each running value of `acc = f(acc, x)`, starting from `acc = init`. `init` itself is not yielded: `[1, 1, -1].scan(0, (a, x) => a + x)` gives `1, 2, 1`.
+- `first()` / `last()` return the first/last element of a chain. Both are maybe-values, and `last()` consumes the whole chain.
+- `find(pred)` / `find_last(pred)` return the first/last element that matches. Both are maybe-values. `find_last` consumes the whole chain.
+- `position(pred)` returns the 0-based index of the first element that matches. It's a maybe-value: it traps if nothing matches, unless used in a conditional binding.
+- `enumerate(start = 0)` pairs each element with its index: `for (i, c) in input.chars().enumerate(1):`.
 - `min()` / `max()` (and similar terminals with no answer on an empty chain) return a maybe-value: they trap on an empty chain unless used in a conditional binding.
+
+## Not included (for now)
+
+- **Regular expressions.** `ints()`, `split_once` and list destructuring cover AoC's input formats. Revisit if a puzzle needs real pattern matching.
 
 ## Naming conventions
 
@@ -108,7 +149,7 @@ The shape of a method's name tells you what it does:
 3. **Nouns are lazy views or computed values,** with no mutation and no allocation: `input.lines()`, `line.ints()`, `grid.neighbors4(p)`, `len()`, `sum()`.
 4. **`is_` / `has_` are predicates:** `is_empty()`.
 
-Exceptions: `find`, `filter` and `map` are verbs that don't mutate. They're kept because the names are standard.
+Exceptions: `find`, `filter` and `map` are verbs that don't mutate. They're kept because the names are standard. And a mutating verb may return the elements it removed as a new list (`pop_many`): that allocation doesn't go through `to_`.
 
 ## Missing values
 
@@ -184,14 +225,58 @@ Blocks are defined by indentation, Python style. A line that opens a block ends 
 
 **Tab characters in indentation are a lexer error.** Indent with spaces only.
 
+Source files are ASCII. Any other byte outside a string literal is a lexer error. This catches non-breaking spaces (macOS Option+Space), which look like normal spaces.
+
 ### Operator precedence
 
 From tightest to loosest: unary `-` `!`, then `*` `/` `%`, then `+` `-`, then comparisons and membership (`==` `!=` `<` `<=` `>` `>=` `in` `!in`), then `and`, then `or`. So `pos + Up in grid` means `(pos + Up) in grid`.
+
+### if / else if / else
+
+```egg
+if a:
+  ...
+else if b:
+  ...
+else:
+  ...
+```
+
+There is no `elif` keyword: `else if` is `else` followed by an `if`.
+
+### If-expressions
+
+`if cond then a else b` is an expression: `floor += if c == '(' then 1 else -1`. `else` is required, and both branches must have the same type. The block form `if cond:` is a statement.
+
+### match
+
+```egg
+match c:
+  '(': floor += 1
+  ')': floor -= 1
+  _: panic("unknown char")
+```
+
+- Arms are `pattern: body`. The body goes on the same line or in an indented block. Patterns for now: literals and `_`.
+- The first matching arm runs, with no fallthrough. `break`/`continue` inside an arm apply to the enclosing loop. If no arm matches, the program traps.
+- `match` can also be an expression when every arm is a single expression: `let step = match c:` followed by arms like `'(': 1`.
+- Guards and destructuring patterns are not designed yet.
 
 ### Line continuation
 
 - A line that starts with `.` continues the expression on the previous line, so chains can be spread over several lines.
 - Newlines inside `()` and `[]` are ignored, as in Python.
+
+### Multi-line strings
+
+```egg
+test """
+  1abc2
+  pqr3stu8vwx
+  """ == 142
+```
+
+Triple-quoted strings can span lines (Swift's rule): the newline right after the opening `"""` and the one before the closing `"""` are dropped, and every line is dedented by the indentation of the closing `"""`. Inside the string, the lexer does no INDENT/DEDENT processing.
 
 ### Comments
 

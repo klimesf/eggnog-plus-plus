@@ -12,11 +12,11 @@
   "folding": { "offSide": true },
   "indentationRules": {
     "increaseIndentPattern": "^\\s*.*:\\s*(#.*)?$",
-    "decreaseIndentPattern": "^\\s*(else|elif)\\b.*:\\s*$"
+    "decreaseIndentPattern": "^\\s*else\\b.*:\\s*$"
   },
   "onEnterRules": [
     {
-      "beforeText": "^\\s*(?:if|else|elif|while|for|fn|fun|match|struct|enum)\\b.*:\\s*(#.*)?$",
+      "beforeText": "^\\s*(?:if|else|while|for|fn|fun|match|struct|enum)\\b.*:\\s*(#.*)?$",
       "action": { "indent": "indent" }
     },
     {

@@ -42,7 +42,7 @@
     },
     "keyword": {
       "patterns": [
-        { "match": "\\b(if|else|elif|while|for|in|match|return|break|continue|test|assert)\\b", "name": "keyword.control.eggnog" },
+        { "match": "\\b(if|then|else|while|for|in|match|return|break|continue|test|assert)\\b", "name": "keyword.control.eggnog" },
         { "match": "\\b(let|fn|fun|memo|inout|struct|enum)\\b", "name": "keyword.declaration.eggnog" },
         { "match": "\\b(and|or|not|as)\\b", "name": "keyword.operator.word.eggnog" }
       ]

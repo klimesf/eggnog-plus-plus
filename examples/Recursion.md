@@ -2,7 +2,7 @@ Solving AoC 2023 day 23 part 1
 
 ```egg
 let grid = input.to_char_grid()
-# start is the only . on the first line
+# start is the only . on the first line
 let start = grid.find('.')
 # finish is the only . on the last line
 let finish = grid.find_last('.')
@@ -20,7 +20,7 @@ fun dfs(pos: (int, int), dist: int) -> int:
   else:
     next = [pos + grid[pos].dir()]
 
-  let max = next.map(n => dfs(n, dist + 1)).max()
+  let max = next.map(n => dfs(n, dist + 1)).max()
 
   seen.remove(pos)
   max
