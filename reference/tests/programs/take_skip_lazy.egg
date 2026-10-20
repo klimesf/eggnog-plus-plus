@@ -1,0 +1,7 @@
+let seen = Set()
+let xs = (10..)
+  .filter(n => seen.add(n))
+  .skip(2)
+  .take(3)
+  .to_list()
+(xs, seen.len())

@@ -1,0 +1,6 @@
+let xs = [3, 1, 2]
+xs.sort()
+let words = ["ccc", "a", "bb"]
+let by_len = words.to_sorted(by = w => w.len(), desc = true)
+let pairs = [(1, "b"), (0, "z"), (1, "a")].to_sorted()
+(xs, by_len, pairs)

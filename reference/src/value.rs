@@ -127,6 +127,8 @@ pub enum StageOp {
     FlatMap(Value),
     Enumerate(i64),
     Scan(Value, Value),
+    Take(i64),
+    Skip(i64),
 }
 
 pub struct Func {

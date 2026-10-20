@@ -471,6 +471,22 @@ impl Interp {
     }
 
     fn call_method(&mut self, recv: &Expr, name: &Name, args: &[Arg], span: Span) -> Result<Value> {
+        if &**name == "sort" {
+            // In-place sort: the `by` lambda runs before the place is borrowed.
+            let a = self.eval_args(args)?;
+            let current = self.eval(recv)?;
+            let Value::List(_) = current else {
+                return Err(Error::runtime(format!("sort() sorts a list in place; for {} use .to_sorted()", describe(&current)), span));
+            };
+            let chain = builtins::to_chain(&current, span)?;
+            let sorted = builtins::sorted(self, &chain, &a, "sort", span)?;
+            let place = self.place(recv)?.ok_or_else(|| Error::runtime("sort() changes a list in place, so it needs a variable (or use .to_sorted())", span))?;
+            self.with_place(&place, false, |slot| {
+                *slot = Value::List(Rc::new(sorted));
+                Ok(())
+            })?;
+            return Ok(Value::Unit);
+        }
         if builtins::is_mutating(name) {
             let mut a = self.eval_args(args)?;
             for v in a.pos.iter_mut() {
@@ -613,6 +629,7 @@ impl Interp {
             .map(|s| match s {
                 StageOp::Enumerate(start) => StageState::Count(*start),
                 StageOp::Scan(init, _) => StageState::Acc(init.clone()),
+                StageOp::Take(_) | StageOp::Skip(_) => StageState::Count(0),
                 _ => StageState::None,
             })
             .collect();
@@ -702,6 +719,24 @@ impl Interp {
                 let next = self.call_value(f, vec![acc, item], span)?;
                 states[i] = StageState::Acc(next.clone());
                 self.feed(stages, i + 1, next, states, span, sink)
+            }
+            StageOp::Take(n) => {
+                let StageState::Count(taken) = &mut states[i] else { unreachable!() };
+                if *taken >= *n {
+                    return Ok(false);
+                }
+                *taken += 1;
+                let more = *taken < *n;
+                // Stop right after the n-th element, so nothing extra is pulled.
+                Ok(self.feed(stages, i + 1, item, states, span, sink)? && more)
+            }
+            StageOp::Skip(n) => {
+                let StageState::Count(skipped) = &mut states[i] else { unreachable!() };
+                if *skipped < *n {
+                    *skipped += 1;
+                    return Ok(true);
+                }
+                self.feed(stages, i + 1, item, states, span, sink)
             }
         }
     }

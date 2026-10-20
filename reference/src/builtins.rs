@@ -555,6 +555,21 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
                 None => Err(Error::runtime(format!("split_once: separator {sep:?} not found"), span)),
             };
         }
+        (Value::Str(s), "split") => {
+            let sep = match a.pos.first() {
+                Some(Value::Str(p)) if !p.is_empty() => p.to_string(),
+                Some(Value::Char(c)) => (*c as char).to_string(),
+                _ => return Err(Error::runtime("split needs a non-empty separator string", span)),
+            };
+            return Ok(chain_of(s.split(&*sep).map(|part| Value::Str(part.into())).collect(), span));
+        }
+        (Value::Str(s), "int") => {
+            let ok = s.strip_prefix('-').unwrap_or(s);
+            if ok.is_empty() || !ok.bytes().all(|b| b.is_ascii_digit()) {
+                return Err(Error::runtime(format!("{} is not an integer (to pull numbers out of text, use .ints())", recv.repr()), span));
+            }
+            return s.parse::<i64>().map(Value::Int).map_err(|_| Error::runtime(format!("{} doesn't fit in an int", recv.repr()), span));
+        }
         (Value::Str(s), "to_char_grid") => return parse_grid(s, false, span),
         (Value::Str(s), "to_digit_grid") => return parse_grid(s, true, span),
         (Value::Str(_), "to_string") => return Ok(recv.clone()),
@@ -604,8 +619,9 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
     // Everything iterable gets the chain methods.
     if matches!(
         name,
-        "map" | "filter" | "flat_map" | "enumerate" | "scan" | "rev" | "sum" | "count" | "any" | "all" | "min" | "max" | "first"
-            | "last" | "find" | "find_last" | "position" | "to_list" | "to_set" | "to_map" | "to_string" | "is_empty"
+        "map" | "filter" | "flat_map" | "enumerate" | "scan" | "take" | "skip" | "rev" | "sum" | "count" | "any" | "all" | "min"
+            | "max" | "first" | "last" | "find" | "find_last" | "position" | "to_list" | "to_set" | "to_map" | "to_string"
+            | "to_sorted" | "is_empty"
     ) {
         let chain = to_chain(&recv, span)?;
         return chain_method(it, &chain, name, a, span);
@@ -766,7 +782,42 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
             })?;
             Ok(Value::Bool(empty))
         }
+        "take" | "skip" => {
+            a.check(1, &["n"], name, span)?;
+            let n = int_arg(&a.req(0, "n", name, span)?, &format!("{name}'s count"), span)?;
+            if n < 0 {
+                return Err(Error::runtime(format!("{name}({n}): the count can't be negative"), span));
+            }
+            Ok(with_stage(chain, if name == "take" { StageOp::Take(n) } else { StageOp::Skip(n) }, span))
+        }
+        "to_sorted" => Ok(Value::List(Rc::new(sorted(it, chain, &a, name, span)?))),
+        "min" | "max" if a.get(usize::MAX, "count").is_some() => {
+            a.check(0, &["count"], name, span)?;
+            let n = int_arg(a.get(usize::MAX, "count").unwrap(), "count", span)?;
+            let mut items = Vec::new();
+            it.drive(chain, &mut |_, v| {
+                items.push(v);
+                Ok(true)
+            })?;
+            if n < 0 || n as usize > items.len() {
+                return Err(Error::runtime(format!("{name}(count = {n}) on {} elements", items.len()), span));
+            }
+            let mut err = None;
+            items.sort_by(|x, y| {
+                let o = x.compare(y).unwrap_or_else(|| {
+                    err.get_or_insert_with(|| Error::runtime(format!("can't compare {} with {}", describe(x), describe(y)), span));
+                    std::cmp::Ordering::Equal
+                });
+                if name == "max" { o.reverse() } else { o }
+            });
+            if let Some(e) = err {
+                return Err(e);
+            }
+            items.truncate(n as usize);
+            Ok(Value::List(Rc::new(items)))
+        }
         "min" | "max" => {
+            a.check(0, &[], name, span)?;
             let mut best: Option<Value> = None;
             it.drive(chain, &mut |_, v| {
                 best = Some(match best.take() {
@@ -862,5 +913,42 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
             }
         }
         _ => Err(Error::runtime(format!("a chain has no method `{name}`"), span)),
+    }
+}
+
+/// Sorted elements of a chain, for `to_sorted` and in-place `sort`.
+/// `by` gives the sort key; `desc = true` sorts largest first. Stable.
+pub fn sorted(it: &mut Interp, chain: &ChainV, a: &Args, method: &str, span: Span) -> Result<Vec<Value>> {
+    a.check(0, &["by", "desc"], method, span)?;
+    let by = match a.get(usize::MAX, "by") {
+        Some(v @ Value::Lambda(_)) => Some(v.clone()),
+        Some(other) => return Err(Error::runtime(format!("`by` needs a lambda, found {}", describe(other)), span)),
+        None => None,
+    };
+    let desc = match a.get(usize::MAX, "desc") {
+        Some(Value::Bool(b)) => *b,
+        Some(other) => return Err(Error::runtime(format!("`desc` must be true or false, found {}", describe(other)), span)),
+        None => false,
+    };
+    let mut keyed = Vec::new();
+    it.drive(chain, &mut |s, v| {
+        let key = match &by {
+            Some(f) => s.call_value(f, vec![v.clone()], span)?,
+            None => v.clone(),
+        };
+        keyed.push((key, v));
+        Ok(true)
+    })?;
+    let mut err = None;
+    keyed.sort_by(|(x, _), (y, _)| {
+        let o = x.compare(y).unwrap_or_else(|| {
+            err.get_or_insert_with(|| Error::runtime(format!("can't compare {} with {}", describe(x), describe(y)), span));
+            std::cmp::Ordering::Equal
+        });
+        if desc { o.reverse() } else { o }
+    });
+    match err {
+        Some(e) => Err(e),
+        None => Ok(keyed.into_iter().map(|(_, v)| v).collect()),
     }
 }

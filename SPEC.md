@@ -18,6 +18,8 @@ Only the built-in containers take type parameters: `Vec<T>`, `Map<K, V>`, `Set<T
 ### Characters and strings
 
 - `char` is a single byte, meant for ASCII. There is no Unicode support.
+- `s.split(sep)`: a lazy chain of the parts of `s` between occurrences of `sep`: `input.split("\n\n")` gives the blank-line-separated sections.
+- `s.int()`: parses the whole string as an integer (optional leading `-`, digits only). Traps on anything else. To pull numbers *out of* text, use `ints()`.
 - `s.split_once(sep)` → a pair `(before, after)` of strings. Traps if `sep` doesn't occur.
 - `s.len()`, `s.starts_with(prefix, at = 0)` (does `prefix` occur at position `at`?), `s[i]` → `char`, and `s[a..b]` / `s[a..]` → a new `string`. Slicing copies, as everything does under value semantics.
 - `s.lines()`: a lazy chain of the lines of `s`, without their `\n` / `\r\n`.
@@ -100,6 +102,7 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 ### Lists
 
 - `[a, b, c]` literals, and `[]` for an empty list (the element type is inferred).
+- `xs.sort(by = f, desc = false)` sorts a list **in place** (a verb that changes the receiver). Use `to_sorted` on chains or to keep the original.
 - `xs.push(x)`, `xs[i]`, `xs.len()`. `xs.first()` / `xs.last()` are maybe-values, so they trap on an empty list.
 - `[x] * n` is a list of `n` copies of `x`. Under value semantics the copies are independent: `[Stack()] * 3` is three separate stacks (unlike Python's `[[]] * 3`).
 - Slicing: `xs[a..b]`, `xs[a..]`, `xs[..b]` → a new list (a copy).
@@ -135,6 +138,9 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 - `position(pred)` returns the 0-based index of the first element that matches. It's a maybe-value: it traps if nothing matches, unless used in a conditional binding.
 - `enumerate(start = 0)` pairs each element with its index: `for (i, c) in input.chars().enumerate(1):`.
 - `min()` / `max()` (and similar terminals with no answer on an empty chain) return a maybe-value: they trap on an empty chain unless used in a conditional binding.
+- `max(count = n)` / `min(count = n)` return a list of the `n` largest/smallest elements, largest/smallest first. They trap if the chain has fewer than `n`.
+- `take(n)` / `skip(n)` are lazy steps: the first `n` elements / everything after the first `n`. `take` stops pulling as soon as it has `n`, so `(0..).take(3)` ends.
+- `to_sorted(by = f, desc = false)` returns a new sorted list (it allocates, hence `to_`). `by` gives the sort key, and `desc = true` sorts largest first. The sort is stable. Tuples compare element by element.
 
 ## Not included (for now)
 
@@ -149,7 +155,7 @@ The shape of a method's name tells you what it does:
 3. **Nouns are lazy views or computed values,** with no mutation and no allocation: `input.lines()`, `line.ints()`, `grid.neighbors4(p)`, `len()`, `sum()`.
 4. **`is_` / `has_` are predicates:** `is_empty()`.
 
-Exceptions: `find`, `filter` and `map` are verbs that don't mutate. They're kept because the names are standard. And a mutating verb may return the elements it removed as a new list (`pop_many`): that allocation doesn't go through `to_`.
+Exceptions: `find`, `filter`, `map` and `split` are verbs that don't mutate. They're kept because the names are standard. And a mutating verb may return the elements it removed as a new list (`pop_many`): that allocation doesn't go through `to_`.
 
 ## Missing values
 
