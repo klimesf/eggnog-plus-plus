@@ -1,0 +1,8 @@
+fun bump(inout counts: Map<string, int>, key: string, by: int = 1):
+  counts[key] += by
+
+let counts = Map(default = 0)
+bump(&counts, "a")
+bump(&counts, "a", by = 5)
+bump(&counts, "b")
+(counts["a"], counts["b"], counts["zzz"])

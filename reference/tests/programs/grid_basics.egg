@@ -1,0 +1,9 @@
+let g = """
+  #.S
+  ..#
+  F..
+  """.to_char_grid()
+let s = g.find('S')
+let f = g.find_last('.')
+g[(1, 0)] = 'X'
+(s, f, g.neighbors4((0, 0)).to_list(), (5, 5) in g, g.to_string())

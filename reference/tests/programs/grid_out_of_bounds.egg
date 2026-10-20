@@ -1,0 +1,2 @@
+let g = "ab\ncd".to_char_grid()
+g[(0, 2)]

@@ -1,0 +1,10 @@
+[package]
+name = "eggnog-ref"
+version = "0.1.0"
+edition = "2024"
+description = "Reference tree-walking interpreter for eggnog++ (for trying out the language; not the real implementation)"
+
+[dependencies]
+
+[profile.release]
+debug = 1

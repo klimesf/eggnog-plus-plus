@@ -1,0 +1,4 @@
+let a = "x=-2, y=7 and 2-4,6-8".ints().to_list()
+let b = 1204.digits().to_list()
+let c = "a1b22".digits().sum()
+(a, b, c)

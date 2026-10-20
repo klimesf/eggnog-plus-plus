@@ -1,0 +1,4 @@
+"))((".chars()
+  .map(c => if c == '(' then 1 else -1)
+  .scan(0, (floor, step) => floor + step)
+  .to_list()

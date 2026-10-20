@@ -1,0 +1,12 @@
+let grid = "123\n456".to_digit_grid()
+let best = 0
+fun walk(p: (int, int), total: int):
+  best = max(best, total + grid[p])
+  for n in [p + Right, p + Down]:
+    if n in grid:
+      walk(n, total + grid[p])
+walk((0, 0), 0)
+for i in 0..:
+  if i == 3:
+    return best * 1000 + i
+0

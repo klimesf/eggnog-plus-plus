@@ -1,0 +1,5 @@
+let p = (5, 5)
+[(0, 0), (10, 10)]
+  .flat_map(p => Dirs4.map(d => p + d))
+  .filter(q => q != p)
+  .count()

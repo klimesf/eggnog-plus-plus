@@ -40,8 +40,12 @@ while (pos, dist) = queue.pop():
 
 panic("Cannot reach F")
 
-test "example.txt" == 22
-test "input.txt" == 304
+test """
+  S..#....
+  .#.#.##.
+  .#...#F.
+  ...#....
+  """ == 10
 ```
 
 A functional-like approach to the algorithm above

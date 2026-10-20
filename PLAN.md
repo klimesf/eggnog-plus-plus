@@ -57,11 +57,15 @@ A small, fast, Rust-flavored language for solving Advent of Code puzzles.
 
 ## Tooling
 
+- `reference/`: a **reference interpreter** written by Claude (crate `eggnog-ref`), so examples can be run while designing. Filip will still write `interpreter/` by hand; this is not that. It's dynamically typed (types are parsed and ignored), and compile-time rules are checked at runtime or not at all (see `reference/README.md`, "How it differs from the spec"). Usage: `eggnog-ref run file.egg input.txt`, `eggnog-ref run examples/X.md:N input.txt`, `eggnog-ref test examples/X.md`. Golden tests in `reference/tests/programs/` (`cargo test`). **Keep it in sync with SPEC.md** when the spec changes. Verified on 2026-10-19 against Filip's answers: 2015 d1 (138/1771), 2023 d1 (54990/54473), 2022 d5 (WCZTHTMPS/BLSGJSDTS), 2023 d23 p1 (2186, both versions; backtracking 1.4 s in release).
+
 - `editors/vscode/`: a VS Code extension that only highlights syntax (TextMate grammar). It covers `.egg` files and ```` ```egg ```` fenced blocks in Markdown. It's installed by symlink: `~/.vscode/extensions/local.eggnog-lang-0.0.1` → `editors/vscode`. Update the keyword lists in `syntaxes/eggnog.tmLanguage.json` as the syntax changes. Comments are `#`.
 
 - **Observation (2023 d1):** user functions can't return a maybe-value (Option stays hidden), so `digit_at` returns 0 as a "none" marker. Watch whether this keeps happening. If so, consider letting a `fun` return a maybe-value that callers must handle with `if x = f():`.
 
 - **From 2022 d5 (examples/year2022_day05.md v1), all 8 accepted into SPEC.md:** `s.split_once(sep)` → a pair of strings (traps if `sep` is missing); `[x] * n` to make a list of n copies (safe under value semantics, unlike Python); slicing lists `xs[a..b]`; `rev()` on lists and ranges (reversible sources only); list destructuring `let [a, b, c] = xs` (traps on a length mismatch); `c.is_letter()`; `Stack.top()` (a maybe-value); `to_string()` on a chain of chars; **in-place mutation through indexing** (`xs[i].push(x)` changes the element: place expressions, important for the interpreter); `Regex` declined for now, because `ints()` covers the AoC parsing cases. Also `Stack.pop_many(n)` / `push_all(xs)`, with a naming-rule exception for mutating verbs that return removed elements (2022 d5 parts differ only by `.rev()`). Before 2022 d10: multi-line string answers, `to_string(sep = …)` on chains (chosen over `join`), `grid.to_string()`. `letters()` (OCR for AoC's block font) was set aside for now. Claude's rewrite was checked with a Python port: `CMZ` on the public example, and `WCZTHTMPS` on Filip's input (moves file plus the stacks from the Rust comment), matching a port of the Rust part_a.
+
+- **Found by the reference interpreter:** `examples/year2015_day01.md` (functional part 2) calls `.scan(init = 0, (floor, step) => …)`, a named argument before a positional one, which the spec forbids. Either reorder (`scan(0, …)`) or relax the rule.
 
 ## Stdlib candidates
 

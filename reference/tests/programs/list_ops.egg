@@ -1,0 +1,6 @@
+let stacks = [Stack()] * 3
+stacks[0].push(1)
+stacks[2].push(5)
+let xs = [1, 2, 3, 4, 5]
+let [a, b, c] = xs[1..4]
+(stacks[1].is_empty(), a + b + c, xs.rev().to_list(), (0..=3).rev().to_string(sep = ","))

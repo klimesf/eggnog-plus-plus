@@ -1,0 +1,10 @@
+let q = MinQueue()
+q.push("b", 5)
+q.push("a", 1)
+q.push("c", 9)
+let order = ""
+while (item, prio) = q.pop():
+  order = order + item
+if x = [1, 2].find(n => n > 5):
+  order = "never"
+order

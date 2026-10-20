@@ -1,0 +1,7 @@
+let seen = Set()
+let firsts = (1..)
+  .map(n => n * n)
+  .filter(n => seen.add(n % 7))
+  .enumerate(start = 1)
+  .find(p => p == (4, 49))
+(firsts, seen.len())
