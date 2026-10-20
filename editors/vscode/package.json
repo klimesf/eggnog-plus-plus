@@ -1,8 +1,8 @@
 {
   "name": "eggnog-lang",
   "displayName": "eggnog++",
-  "description": "Syntax highlighting for eggnog++",
-  "version": "0.0.1",
+  "description": "Syntax highlighting, completions and hovers for eggnog++",
+  "version": "0.0.2",
   "publisher": "local",
   "engines": {
     "vscode": "^1.80.0"
@@ -49,5 +49,14 @@
         "editor.detectIndentation": false
       }
     }
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:eggnog",
+    "onLanguage:markdown"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "local"
   }
 }
