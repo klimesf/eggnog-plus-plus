@@ -2,7 +2,7 @@
   "name": "eggnog-lang",
   "displayName": "eggnog++",
   "description": "Syntax highlighting, completions and hovers for eggnog++",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "local",
   "engines": {
     "vscode": "^1.80.0"
@@ -47,6 +47,34 @@
         "editor.insertSpaces": true,
         "editor.tabSize": 2,
         "editor.detectIndentation": false
+      },
+      "editor.tokenColorCustomizations": {
+        "[Visual Studio Dark]": {
+          "textMateRules": [
+            {
+              "scope": [
+                "support.type.primitive.eggnog",
+                "entity.name.type.eggnog"
+              ],
+              "settings": {
+                "foreground": "#4EC9B0"
+              }
+            }
+          ]
+        },
+        "[Visual Studio Light]": {
+          "textMateRules": [
+            {
+              "scope": [
+                "support.type.primitive.eggnog",
+                "entity.name.type.eggnog"
+              ],
+              "settings": {
+                "foreground": "#267F99"
+              }
+            }
+          ]
+        }
       }
     }
   },
