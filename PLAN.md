@@ -57,7 +57,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 ## Declined for now
 
-- **Function references** (`.map(eval_round)`). Rules if it comes back: only directly as an argument (never stored), the parameter count must match, no `inout`, no default parameters at first, user functions only. Method references (`.map(\.int)`) don't help much, because most lambdas are method chains.
+- **Function references** (`.map(eval_round)`). The implicit `it` mostly covers this: `.map(eval_round(it))`. Rules if it comes back: only directly as an argument (never stored), the parameter count must match, no `inout`, no default parameters at first, user functions only. Method references (`.map(\.int)`) don't help much, because most lambdas are method chains.
 - **Regex:** `ints()`, `split_once` and list destructuring cover AoC's input formats.
 - **`letters()`** (OCR for AoC's block-letter font).
 - **Built-in `bfs` / `dijkstra`:** writing the algorithms is the point.

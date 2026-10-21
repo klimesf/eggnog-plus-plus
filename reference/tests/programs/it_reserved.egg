@@ -1,0 +1,1 @@
+let xs = [1, 2].map(it => it + 1).to_list()

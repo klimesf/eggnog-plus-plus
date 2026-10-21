@@ -7,6 +7,43 @@ use crate::ast::*;
 use crate::error::{Error, Result, Span};
 use crate::lexer::{Tok, Token};
 
+/// Methods whose arguments may be lambdas, so an argument that uses `it`
+/// becomes `it => …`. `it` belongs to the innermost such call.
+const LAMBDA_METHODS: &[&str] =
+    &["map", "filter", "flat_map", "scan", "count", "any", "all", "find", "find_last", "position", "sort", "to_sorted"];
+
+const IT_RESERVED: &str = "`it` is reserved for the implicit lambda parameter (`.map(it * 2)`); pick another name";
+
+/// Turns an argument that uses `it` (outside nested lambdas) into `it => arg`.
+fn wrap_it(e: &mut Expr) {
+    if matches!(e.kind, ExprKind::Lambda(_)) || !uses_it(e) {
+        return;
+    }
+    let span = e.span;
+    let body = std::mem::replace(e, Expr { kind: ExprKind::Bool(false), span });
+    *e = Expr { kind: ExprKind::Lambda(Rc::new(Lambda { params: vec![Pattern::Name("it".into())], body })), span };
+}
+
+fn uses_it(e: &Expr) -> bool {
+    match &e.kind {
+        ExprKind::Var(n) => &**n == "it",
+        ExprKind::Int(_) | ExprKind::Str(_) | ExprKind::Char(_) | ExprKind::Bool(_) | ExprKind::Path(..) => false,
+        ExprKind::Lambda(_) => false,
+        ExprKind::Tuple(xs) | ExprKind::List(xs) => xs.iter().any(uses_it),
+        ExprKind::Unary(_, x) | ExprKind::Ref(x) => uses_it(x),
+        ExprKind::Binary(_, a, b) | ExprKind::And(a, b) | ExprKind::Or(a, b) => uses_it(a) || uses_it(b),
+        ExprKind::In { item, coll, .. } => uses_it(item) || uses_it(coll),
+        ExprKind::Range { start, end, .. } => start.as_deref().is_some_and(uses_it) || end.as_deref().is_some_and(uses_it),
+        ExprKind::Call { args, .. } => args.iter().any(|a| uses_it(&a.value)),
+        ExprKind::Method { recv, args, .. } => uses_it(recv) || args.iter().any(|a| uses_it(&a.value)),
+        ExprKind::Index { recv, index } => uses_it(recv) || uses_it(index),
+        ExprKind::IfElse(c, a, b) => uses_it(c) || uses_it(a) || uses_it(b),
+        ExprKind::Match(x, arms) => {
+            uses_it(x) || arms.iter().any(|(p, v)| matches!(p, MatchPat::Value(pv) if uses_it(pv)) || uses_it(v))
+        }
+    }
+}
+
 pub fn parse(tokens: &[Token]) -> Result<Program> {
     let mut p = Parser { t: tokens, i: 0 };
     let mut body = Vec::new();
@@ -284,6 +321,9 @@ impl<'a> Parser<'a> {
             let inout = self.eat(&Tok::Inout);
             let pspan = self.span();
             let pname = self.ident("a parameter name")?;
+            if &*pname == "it" {
+                return Err(Error::parse(IT_RESERVED, pspan));
+            }
             if !self.eat(&Tok::Colon) {
                 return Err(Error::parse(format!("parameter `{pname}` needs a type (`{pname}: int`)"), pspan));
             }
@@ -339,6 +379,9 @@ impl<'a> Parser<'a> {
     fn pattern(&mut self) -> Result<Pattern> {
         match self.peek().clone() {
             Tok::Ident(n) => {
+                if &*n == "it" {
+                    return Err(Error::parse(IT_RESERVED, self.span()));
+                }
                 self.advance();
                 Ok(if &*n == "_" { Pattern::Wild } else { Pattern::Name(n) })
             }
@@ -607,7 +650,12 @@ impl<'a> Parser<'a> {
                     return Err(Error::parse(format!("expected `(` after `.{name}` (there is no field access; methods need parentheses)"), self.span()));
                 }
                 self.advance();
-                let args = self.args()?;
+                let mut args = self.args()?;
+                if LAMBDA_METHODS.contains(&&*name) {
+                    for a in &mut args {
+                        wrap_it(&mut a.value);
+                    }
+                }
                 let span = e.span.to(self.prev_span());
                 e = Expr { kind: ExprKind::Method { recv: Box::new(e), name, args }, span };
             } else if self.eat(&Tok::LBracket) {

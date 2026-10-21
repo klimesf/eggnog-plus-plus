@@ -12,7 +12,7 @@ fun eval_round(line: string) -> int:
     _: panic("unknown combination")
 
 input.lines()
-  .map(line => eval_round(line))
+  .map(eval_round(it))
   .sum()
 
 test """

@@ -4,7 +4,7 @@ fun priority(c: char) -> int:
 input.lines()
   .chunks(3)
   .map([a, b, c] => a.intersection(b).intersection(c).first())
-  .map(c => priority(c))
+  .map(priority(it))
   .sum()
 
 test """

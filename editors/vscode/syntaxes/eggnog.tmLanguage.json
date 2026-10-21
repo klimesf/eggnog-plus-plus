@@ -95,7 +95,7 @@
           "name": "constant.language.eggnog"
         },
         {
-          "match": "\\b(input)\\b",
+          "match": "\\b(input|it)\\b",
           "name": "variable.language.eggnog"
         },
         {

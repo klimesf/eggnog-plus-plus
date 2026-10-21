@@ -674,7 +674,7 @@ fn lambda_arg(a: &Args, i: usize, name: &str, method: &str, span: Span) -> Resul
     match a.get(i, name) {
         Some(v @ Value::Lambda(_)) => Ok(v.clone()),
         Some(Value::Func(f)) => {
-            Err(Error::runtime(format!("functions aren't values; wrap it in a lambda: `x => {}(x)`", f.decl.name), span))
+            Err(Error::runtime(format!("functions aren't values; write `{}(it)`", f.decl.name), span))
         }
         Some(other) => Err(Error::runtime(format!("`{method}` needs a lambda, found {}", describe(other)), span)),
         None => Err(Error::runtime(format!("`{method}` needs a lambda"), span)),

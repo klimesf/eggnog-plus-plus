@@ -359,6 +359,9 @@ impl Interp {
             ExprKind::Str(s) => Value::Str(s.clone()),
             ExprKind::Char(c) => Value::Char(*c),
             ExprKind::Bool(b) => Value::Bool(*b),
+            ExprKind::Var(n) if &**n == "it" && self.lookup(n).is_none() => {
+                return Err(Error::runtime("`it` only works inside an argument of a lambda-taking method (`.map(it * 2)`)", span));
+            }
             ExprKind::Var(n) => self.lookup(n).ok_or_else(|| Error::runtime(format!("unknown name `{n}`"), span))?,
             ExprKind::Path(t, m) => match (&**t, &**m) {
                 ("int", "Max") => Value::Int(i64::MAX),
@@ -612,7 +615,7 @@ impl Interp {
                 })
             }
             Value::Func(func) => Err(Error::runtime(
-                format!("functions aren't values; wrap `{}` in a lambda: `x => {}(x)`", func.decl.name, func.decl.name),
+                format!("functions aren't values; write `{}(it)`", func.decl.name),
                 span,
             )),
             other => Err(Error::runtime(format!("expected a lambda, found {}", describe(other)), span)),
