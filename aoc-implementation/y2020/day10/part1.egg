@@ -8,7 +8,7 @@ let diffs = adapters
   .map([a, b] => b - a)
   .to_list()
 
-diffs.count(1) * diffs.count(3)
+diffs.count(it == 1) * diffs.count(it == 3)
 
 test """
 16
