@@ -2,17 +2,19 @@
 
 A runnable tree-walking interpreter for eggnog++, written to try the language
 out while it's being designed. It is **not** the real implementation (that's
-`../interpreter/`, written by hand); use it to run the examples, check
+`../interpreter/`, written by hand); use it to run the AoC solutions, check
 answers, and see how the language feels.
 
 ```sh
 cargo build --release
 alias egg="$PWD/target/release/eggnog-ref"
 
-egg run day01.egg input.txt              # print the answer
-egg run ../examples/BFS.md:2 maze.txt    # run the 2nd ```egg block of a Markdown file
-egg test ../examples/year2023_day01.md   # run all `test` lines in every block
-egg blocks ../examples/BFS.md            # list a Markdown file's blocks
+egg run day01.egg input.txt     # print the answer
+egg test day01.egg              # run all `test` lines
+egg run notes.md:2 input.txt    # run the 2nd ```egg block of a Markdown file
+egg blocks notes.md             # list a Markdown file's blocks
+
+../aoc-implementation/test.sh   # run the tests of every AoC solution
 ```
 
 Input comes from the file argument, else piped stdin, else it's empty. The
