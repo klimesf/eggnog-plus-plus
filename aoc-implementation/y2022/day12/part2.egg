@@ -1,0 +1,22 @@
+let grid = input.to_char_grid()
+let start = grid.find('S')
+let end = grid.find('E')
+grid[start] = 'a'
+grid[end] = 'z'
+
+let queue = Queue((end, 0))
+let seen = Set()
+while (pos, dist) = queue.pop():
+  if grid[pos] == 'a':
+    return dist
+  for n in grid.neighbors4(pos).filter(grid[pos] - grid[it] <= 1):
+      if seen.add(n): queue.push((n, dist + 1))
+
+test """
+Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi
+""" == 29
+test file("input.txt") == 443
