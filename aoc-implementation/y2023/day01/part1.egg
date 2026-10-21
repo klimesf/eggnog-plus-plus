@@ -1,0 +1,11 @@
+input.lines()
+  .map(line => line.digits().first() * 10 + line.digits().last())
+  .sum()
+
+test """
+1abc2
+pqr3stu8vwx
+a1b2c3d4e5f
+treb7uchet
+""" == 142
+test file("input.txt") == 54990

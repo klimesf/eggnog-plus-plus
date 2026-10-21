@@ -1,0 +1,8 @@
+input.chars()
+  .map(c => if c == '(' then 1 else -1)
+  .scan(0, (floor, step) => floor + step)
+  .position(floor => floor < 0) + 1
+
+test ")" == 1
+test "()())" == 5
+test file("input.txt") == 1771

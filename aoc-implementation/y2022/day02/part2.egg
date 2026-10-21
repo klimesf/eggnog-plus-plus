@@ -20,3 +20,4 @@ A Y
 B X
 C Z
 """ == 12
+test file("input.txt") == 15457

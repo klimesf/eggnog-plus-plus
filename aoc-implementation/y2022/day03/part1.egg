@@ -4,7 +4,7 @@ fun priority(c: char) -> int:
 input.lines()
   .map(line => (line[0..line.len() / 2], line[line.len() / 2..]))
   .map((a, b) => a.intersection(b).first())
-  .map(c => to_value(c))
+  .map(c => priority(c))
   .sum()
 
 test """

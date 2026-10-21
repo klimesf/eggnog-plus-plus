@@ -1,0 +1,9 @@
+input.chars()
+  .map(c => if c == '(' then 1 else -1)
+  .sum()
+
+test "(())" == 0
+test "(((" == 3
+test "))(" == -1
+test ")())())" == -3
+test file("input.txt") == 138

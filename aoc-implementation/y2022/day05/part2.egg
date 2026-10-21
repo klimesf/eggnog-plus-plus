@@ -1,0 +1,27 @@
+let (top, bottom) = input.split_once("\n\n")
+let lines = top.lines().to_list()
+let stacks = [Stack()] * lines.last().ints().count()
+
+for line in lines.rev():
+  for (i, c) in line.chars().enumerate():
+    if c.is_letter():
+      stacks[i / 4].push(c)
+
+for line in bottom.lines():
+  let [n, from, to] = line.ints().to_list()
+  stacks[to - 1].push_all(stacks[from - 1].pop_many(n))
+
+stacks.map(stack => stack.top()).to_string()
+
+test """
+    [D]    
+[N] [C]    
+[Z] [M] [P]
+ 1   2   3 
+
+move 1 from 2 to 1
+move 3 from 1 to 3
+move 2 from 2 to 1
+move 1 from 1 to 2
+""" == "MCD"
+test file("input.txt") == "BLSGJSDTS"

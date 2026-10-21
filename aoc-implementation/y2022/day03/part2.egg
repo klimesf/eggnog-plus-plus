@@ -2,7 +2,7 @@ fun priority(c: char) -> int:
   if c >= 'a' and c <= 'z' then c - 'a' + 1 else c - 'A' + 27
 
 input.lines()
-  .windows(3)
+  .chunks(3)
   .map([a, b, c] => a.intersection(b).intersection(c).first())
   .map(c => priority(c))
   .sum()
@@ -15,3 +15,4 @@ wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
 ttgJtRGJQctTZtZT
 CrZsJsPPZsGzwwsLwLmpwMDw
 """ == 70
+test file("input.txt") == 2821
