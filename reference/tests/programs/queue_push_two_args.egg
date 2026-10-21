@@ -1,0 +1,2 @@
+let q = Queue()
+q.push((1, 1), 2)

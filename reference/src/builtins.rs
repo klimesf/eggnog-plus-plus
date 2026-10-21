@@ -401,6 +401,15 @@ pub fn is_mutating(name: &str) -> bool {
 
 pub fn call_mut(slot: &mut Value, name: &str, a: Args, span: Span) -> Result<Value> {
     let arg0 = |what: &str| a.pos.first().cloned().ok_or_else(|| Error::runtime(format!("`{name}` needs {what}"), span));
+    let max_args = match (&*slot, name) {
+        (Value::MinQueue(_), "push") => 2,
+        (_, "pop") => 0,
+        _ => 1,
+    };
+    if a.pos.len() > max_args {
+        let hint = if name == "push" && max_args == 1 { "; to push a pair, wrap it in a tuple: `push((a, b))`" } else { "" };
+        return Err(Error::runtime(format!("`{name}` on {} takes {max_args} argument{}, got {}{hint}", describe(slot), if max_args == 1 { "" } else { "s" }, a.pos.len()), span));
+    }
     match (slot, name) {
         (Value::List(xs), "push") => {
             Rc::make_mut(xs).push(arg0("a value")?);
