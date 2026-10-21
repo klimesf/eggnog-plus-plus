@@ -18,10 +18,9 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 ## Steps
 
 1. **Design on paper.** *(Done: SPEC.md.)*
-1b. **Solve varied AoC days on paper** *(current)*. Filip writes solutions in `aoc-implementation/`. Claude checks each one against SPEC.md, runs it on the reference interpreter, and challenges the design. The gaps found get decided into SPEC.md.
-2. **Interpreter in Rust** (`interpreter/`, written by Filip). Lexer, parser, AST, tree-walking evaluator, standard library in Rust. Also serves as a reference for checking the compiler's output.
-3. **Native compiler.** Static type checker, then Cranelift codegen to ARM64 object files, linked with the system linker. Open question for then: how compiled code passes values to the Rust runtime library (Rust generics can't cross a C ABI, so either one uniform 8-byte value representation, or a fixed set of instantiations). Benchmark against Filip's Rust AoC solutions.
-4. **Test on past AoC days** and fix whatever turns out awkward.
+1b. **Solve varied AoC days in eggnog++** *(current)*. Filip writes solutions in `aoc-implementation/`, and they run on the reference interpreter. Claude checks each one against SPEC.md and challenges the design. Whatever turns out awkward gets decided into SPEC.md. This replaces the old "test on past AoC days" step: the language is tested on real puzzles while it's still cheap to change.
+2. **Interpreter in Rust** (`interpreter/`, written by Filip). Lexer, parser, AST, tree-walking evaluator, standard library in Rust. Done when it passes every `aoc-implementation/` test. Also serves as a reference for checking the compiler's output.
+3. **Native compiler.** Static type checker, then Cranelift codegen to ARM64 object files, linked with the system linker. Done when it passes every `aoc-implementation/` test. Open question for then: how compiled code passes values to the Rust runtime library (Rust generics can't cross a C ABI, so either one uniform 8-byte value representation, or a fixed set of instantiations). Benchmark against Filip's Rust AoC solutions.
 
 ## How we work
 
@@ -33,7 +32,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 ## Status
 
-- **1b:** done so far: 2015 d1, 2022 d1, d2, d3, d5, 2023 d1. All 12 part files pass on the real inputs. Suggested next: 2022 d10 (multi-line string answer), 2023 d7, 2023 d5, 2023 d14.
+- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d6, 2023 d1. All 18 part files pass on the real inputs. Suggested next: 2022 d10 (multi-line string answer), 2023 d7, 2023 d5, 2023 d14, 2025 d11 (a `memo fun` with its own cache per call).
 - **Step 2:** Filip has started (`interpreter/`, see its `GUIDE.md` for the 11-slice roadmap). The lexer, parser and evaluator still have `todo!()`s.
 - Toolchain: rustc/cargo 1.99.1, Xcode installed, arm64.
 
