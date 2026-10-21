@@ -1,0 +1,28 @@
+let adapters = input.ints().to_list()
+adapters.push(0) # outlet
+adapters.push(adapters.max() + 3) # built-in
+adapters.sort()
+
+memo fun arrangements(pos: int) -> int:
+  if pos == adapters.len() - 1: return 1
+  (pos + 1..=pos + 3)
+    .filter(i => i < adapters.len() and adapters[i] - adapters[pos] <= 3)
+    .map(i => arrangements(i))
+    .sum()
+
+arrangements(0)
+
+test """
+16
+10
+15
+5
+1
+11
+7
+19
+6
+12
+4
+""" == 8
+test file("input.txt") == 1157018619904

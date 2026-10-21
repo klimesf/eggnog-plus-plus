@@ -1,0 +1,26 @@
+let adapters = input.ints().to_list()
+adapters.push(0) # outlet
+adapters.push(adapters.max() + 3) # built-in
+adapters.sort()
+
+let diffs = adapters
+  .windows(2)
+  .map([a, b] => b - a)
+  .to_list()
+
+diffs.count(1) * diffs.count(3)
+
+test """
+16
+10
+15
+5
+1
+11
+7
+19
+6
+12
+4
+""" == 7 * 5
+test file("input.txt") == 2046
