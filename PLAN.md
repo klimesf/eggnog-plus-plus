@@ -26,6 +26,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 - **Language design is collaborative.** Filip proposes syntax and semantics. Claude checks feasibility (lexer, parser, type checker, Cranelift codegen), points out ambiguities and costs, and pushes back. Claude does not write the spec or the AoC solutions alone.
 - **Design principle:** elegance comes from focusing only on AoC. Each feature has to make AoC solutions shorter or clearer. Anything that exists only because "real languages have it" stays out.
+- **Keep the language as small as possible.** Filip wants every addition challenged. Before adding a method, keyword or syntax, Claude shows how the same thing reads with what already exists. If the existing form is about as short and clear, the addition stays out, even when Filip proposed it. Example: `for_each` was declined because `for n in xs.filter(…): …` already fits on one line. Adding is cheap now and expensive later (spec, reference, Filip's interpreter, compiler, extension), and two ways to write the same thing make solutions harder to compare.
 - **Stdlib principle:** helpers that keep coming back belong in the standard library, not in user code, if the pattern appears in several puzzles, is general, and its name follows the SPEC naming rules.
 - **When the spec changes,** update together: `SPEC.md`, `reference/` (with a golden test), `editors/vscode/stdlib.json` (for built-ins), and this file.
 - **Reference code:** Filip's Rust AoC solutions are in `/Users/filip/Dev/advent-of-code` (2015–2025, `src/yYYYY/dayDD.rs`, helpers in `src/utils/`, inputs in `input/YYYY/dayDD/input.txt`). Use them to find recurring patterns and as answers to check against.
@@ -61,3 +62,5 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 - **Regex:** `ints()`, `split_once` and list destructuring cover AoC's input formats.
 - **`letters()`** (OCR for AoC's block-letter font).
 - **Built-in `bfs` / `dijkstra`:** writing the algorithms is the point.
+- **`for_each` on chains:** `for x in chain.filter(…): …` already fits on one line, and a `for` body can grow to several statements.
+- **`unique()`:** `xs.to_set().len() == n` already tests for distinct elements, and a lazy `unique` would allocate a hidden set.
