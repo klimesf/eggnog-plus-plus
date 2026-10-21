@@ -1,0 +1,58 @@
+fun apply(old: int, operation: string) -> int:
+  let [_, operand, right] = operation.split(" ").to_list()
+  let n = if right == "old" then old else right.int()
+  if operand == "+" then old + n else old * n
+
+let monkeys = []
+let items = []
+let lcm = 1
+for block in input.split("\n\n"):
+  let lines = block.lines().to_list()
+  let (_, op) = lines[2].split_once(" = ")
+  let [div, if_true, if_false] = lines[3..6].map(it.ints().first()).to_list()
+  monkeys.push((op, div, if_true, if_false))
+  items.push(lines[1].ints().to_list())
+  lcm *= div # the div is always a prime, so this is actually a lcm
+
+let inspections = [0] * monkeys.len()
+for _ in 0..10000:
+  for (i, (op, div, if_true, if_false)) in monkeys.enumerate():
+    for old in items[i]:
+      inspections[i] += 1
+      let new = apply(old, op) % lcm
+      items[if new % div == 0 then if_true else if_false].push(new)
+    items[i] = []
+
+let [a, b] = inspections.max(count = 2)
+a * b
+
+test """
+Monkey 0:
+  Starting items: 79, 98
+  Operation: new = old * 19
+  Test: divisible by 23
+    If true: throw to monkey 2
+    If false: throw to monkey 3
+
+Monkey 1:
+  Starting items: 54, 65, 75, 74
+  Operation: new = old + 6
+  Test: divisible by 19
+    If true: throw to monkey 2
+    If false: throw to monkey 0
+
+Monkey 2:
+  Starting items: 79, 60, 97
+  Operation: new = old * old
+  Test: divisible by 13
+    If true: throw to monkey 1
+    If false: throw to monkey 3
+
+Monkey 3:
+  Starting items: 74
+  Operation: new = old + 3
+  Test: divisible by 17
+    If true: throw to monkey 0
+    If false: throw to monkey 1
+""" == 2713310158
+test file("input.txt") == 15333249714
