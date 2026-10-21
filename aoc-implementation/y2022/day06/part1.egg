@@ -1,0 +1,13 @@
+input.chars()
+  .windows(4)
+  .enumerate()
+  .filter((pos, list) => list.to_set().len() == 4)
+  .map((pos, _) => pos + 4)
+  .first()
+
+test "mjqjpqmgbljsphdztnvjfqwrcgsmlb" == 7
+test "bvwbjplbgvbhsrlpgdmjqwftvncz" == 5
+test "nppdvjthqldpwncqszvftbrmjlhg" == 6
+test "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg" == 10
+test "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw" == 11
+test file("input.txt") == 1702
