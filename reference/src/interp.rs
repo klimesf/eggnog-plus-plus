@@ -1,6 +1,7 @@
 //! The tree-walking evaluator: statements, expressions, places, calls and
 //! lazy chains.
 
+use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -630,18 +631,46 @@ impl Interp {
                 StageOp::Enumerate(start) => StageState::Count(*start),
                 StageOp::Scan(init, _) => StageState::Acc(init.clone()),
                 StageOp::Take(_) | StageOp::Skip(_) => StageState::Count(0),
+                StageOp::Chunks(_) | StageOp::Windows(_) => StageState::Buf(VecDeque::new()),
                 _ => StageState::None,
             })
             .collect();
         let stages = &chain.stages;
         let span = chain.span;
-        match &chain.source {
+        if !self.pump(&chain.source, stages, &mut states, span, sink)? {
+            return Ok(false);
+        }
+        // The source has run out: hand on each unfinished chunk, in stage order
+        // (a flushed chunk may fill a later stage's chunk, which then flushes too).
+        for i in 0..stages.len() {
+            if let (StageOp::Chunks(_), StageState::Buf(buf)) = (&stages[i], &mut states[i]) {
+                if !buf.is_empty() {
+                    let chunk = Value::List(Rc::new(std::mem::take(buf).into()));
+                    if !self.feed(stages, i + 1, chunk, &mut states, span, sink)? {
+                        return Ok(false);
+                    }
+                }
+            }
+        }
+        Ok(true)
+    }
+
+    /// Feeds every element of a chain's source into its first stage.
+    fn pump(
+        &mut self,
+        source: &Source,
+        stages: &[StageOp],
+        states: &mut [StageState],
+        span: Span,
+        sink: &mut dyn FnMut(&mut Interp, Value) -> Result<bool>,
+    ) -> Result<bool> {
+        match source {
             Source::Values { items, rev } => {
                 let items = items.clone();
                 let n = items.len();
                 for k in 0..n {
                     let v = items[if *rev { n - 1 - k } else { k }].clone();
-                    if !self.feed(stages, 0, v, &mut states, span, sink)? {
+                    if !self.feed(stages, 0, v, states, span, sink)? {
                         return Ok(false);
                     }
                 }
@@ -652,7 +681,7 @@ impl Interp {
                 let n = bytes.len();
                 for k in 0..n {
                     let b = bytes[if *rev { n - 1 - k } else { k }];
-                    if !self.feed(stages, 0, Value::Char(b), &mut states, span, sink)? {
+                    if !self.feed(stages, 0, Value::Char(b), states, span, sink)? {
                         return Ok(false);
                     }
                 }
@@ -661,7 +690,7 @@ impl Interp {
                 if *rev {
                     let mut i = end.expect("reversed ranges have an end") - 1;
                     while i >= *start {
-                        if !self.feed(stages, 0, Value::Int(i), &mut states, span, sink)? {
+                        if !self.feed(stages, 0, Value::Int(i), states, span, sink)? {
                             return Ok(false);
                         }
                         i -= 1;
@@ -669,7 +698,7 @@ impl Interp {
                 } else {
                     let mut i = *start;
                     while end.is_none_or(|e| i < e) {
-                        if !self.feed(stages, 0, Value::Int(i), &mut states, span, sink)? {
+                        if !self.feed(stages, 0, Value::Int(i), states, span, sink)? {
                             return Ok(false);
                         }
                         i = i.checked_add(1).ok_or_else(|| Error::runtime("range overflowed int", span))?;
@@ -738,6 +767,34 @@ impl Interp {
                 }
                 self.feed(stages, i + 1, item, states, span, sink)
             }
+            StageOp::Intersect(other) => {
+                if builtins::contains(other, &item, span)? {
+                    self.feed(stages, i + 1, item, states, span, sink)
+                } else {
+                    Ok(true)
+                }
+            }
+            StageOp::Chunks(n) => {
+                let StageState::Buf(buf) = &mut states[i] else { unreachable!() };
+                buf.push_back(item);
+                if buf.len() < *n {
+                    return Ok(true);
+                }
+                let chunk = Value::List(Rc::new(std::mem::take(buf).into()));
+                self.feed(stages, i + 1, chunk, states, span, sink)
+            }
+            StageOp::Windows(n) => {
+                let StageState::Buf(buf) = &mut states[i] else { unreachable!() };
+                buf.push_back(item);
+                if buf.len() > *n {
+                    buf.pop_front();
+                }
+                if buf.len() < *n {
+                    return Ok(true);
+                }
+                let window = Value::List(Rc::new(buf.iter().cloned().collect()));
+                self.feed(stages, i + 1, window, states, span, sink)
+            }
         }
     }
 }
@@ -746,6 +803,7 @@ pub enum StageState {
     None,
     Count(i64),
     Acc(Value),
+    Buf(VecDeque<Value>),
 }
 
 pub fn is_test(s: &Stmt) -> bool {

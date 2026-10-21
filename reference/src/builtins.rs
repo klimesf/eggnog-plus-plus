@@ -122,14 +122,6 @@ pub fn binary(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
     }
 }
 
-fn char_from(n: i64, span: Span) -> Result<Value> {
-    if (0..=127).contains(&n) {
-        Ok(Value::Char(n as u8))
-    } else {
-        Err(Error::runtime(format!("char arithmetic left the ASCII range ({n})"), span))
-    }
-}
-
 fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
     use BinOp::*;
     match (&a, &b) {
@@ -158,8 +150,6 @@ fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
         }
         (Value::Int(_), Value::Tuple(_)) if op == Mul => arith(Mul, b, a, span),
         (Value::Char(x), Value::Char(y)) if op == Sub => Ok(Value::Int(*x as i64 - *y as i64)),
-        (Value::Char(x), Value::Int(y)) if op == Add => char_from(*x as i64 + y, span),
-        (Value::Char(x), Value::Int(y)) if op == Sub => char_from(*x as i64 - y, span),
         (Value::Str(x), Value::Str(y)) if op == Add => Ok(Value::Str(format!("{x}{y}").into())),
         (Value::Str(x), Value::Char(y)) if op == Add => Ok(Value::Str(format!("{x}{}", *y as char).into())),
         (Value::List(x), Value::List(y)) if op == Add => Ok(Value::List(Rc::new(x.iter().chain(y.iter()).cloned().collect()))),
@@ -621,7 +611,7 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
         name,
         "map" | "filter" | "flat_map" | "enumerate" | "scan" | "take" | "skip" | "rev" | "sum" | "count" | "any" | "all" | "min"
             | "max" | "first" | "last" | "find" | "find_last" | "position" | "to_list" | "to_set" | "to_map" | "to_string"
-            | "to_sorted" | "is_empty"
+            | "to_sorted" | "is_empty" | "chunks" | "windows" | "intersection"
     ) {
         let chain = to_chain(&recv, span)?;
         return chain_method(it, &chain, name, a, span);
@@ -789,6 +779,23 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
                 return Err(Error::runtime(format!("{name}({n}): the count can't be negative"), span));
             }
             Ok(with_stage(chain, if name == "take" { StageOp::Take(n) } else { StageOp::Skip(n) }, span))
+        }
+        "chunks" | "windows" => {
+            a.check(1, &["n"], name, span)?;
+            let n = int_arg(&a.req(0, "n", name, span)?, &format!("{name}'s size"), span)?;
+            if n < 1 {
+                return Err(Error::runtime(format!("{name}({n}): the size must be at least 1"), span));
+            }
+            let n = n as usize;
+            Ok(with_stage(chain, if name == "chunks" { StageOp::Chunks(n) } else { StageOp::Windows(n) }, span))
+        }
+        "intersection" => {
+            a.check(1, &["other"], name, span)?;
+            let other = a.req(0, "other", name, span)?;
+            if matches!(other, Value::Chain(_)) {
+                return Err(Error::runtime("intersection needs a string, list or Set to look in, not a chain; collect it with to_set()", span));
+            }
+            Ok(with_stage(chain, StageOp::Intersect(other), span))
         }
         "to_sorted" => Ok(Value::List(Rc::new(sorted(it, chain, &a, name, span)?))),
         "min" | "max" if a.get(usize::MAX, "count").is_some() => {

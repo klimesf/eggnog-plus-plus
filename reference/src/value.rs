@@ -129,6 +129,10 @@ pub enum StageOp {
     Scan(Value, Value),
     Take(i64),
     Skip(i64),
+    /// Keeps the elements that are `in` the collection.
+    Intersect(Value),
+    Chunks(usize),
+    Windows(usize),
 }
 
 pub struct Func {

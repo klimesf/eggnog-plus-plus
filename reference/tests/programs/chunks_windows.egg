@@ -1,0 +1,13 @@
+fun total(xs: [int]) -> int:
+  xs.sum()
+
+# chunks: separate groups; the last one may be shorter
+let c = (1..=7).chunks(3).to_list()
+# windows: overlapping; none if the chain is shorter than n
+let w = [1, 2, 3, 4].windows(3).map([a, b, c] => a + b + c).to_list()
+let none = [1, 2].windows(3).count()
+# a leftover chunk is flushed into a later chunks stage
+let nested = (1..=5).chunks(2).chunks(2).to_list()
+# take stops early, so an endless source works
+let first = (1..).chunks(2).take(2).map(xs => total(xs)).to_list()
+(c, w, none, nested, first)

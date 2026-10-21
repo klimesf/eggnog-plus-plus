@@ -119,7 +119,7 @@ impl<'a> Parser<'a> {
                 self.end_stmt()?;
                 StmtKind::Let(pat, value)
             }
-            Tok::If => return self.if_stmt(),
+            Tok::If if !self.if_is_expr() => return self.if_stmt(),
             Tok::While => {
                 self.advance();
                 let cond = self.cond()?;
@@ -309,6 +309,10 @@ impl<'a> Parser<'a> {
 
     /// Types are parsed and ignored: the reference interpreter is dynamically typed.
     fn skip_type(&mut self) -> Result<()> {
+        if self.eat(&Tok::LBracket) {
+            self.skip_type()?;
+            return self.expect(&Tok::RBracket, "`]` in a list type").map(|_| ());
+        }
         if self.eat(&Tok::LParen) {
             while !self.eat(&Tok::RParen) {
                 self.skip_type()?;
@@ -364,6 +368,13 @@ impl<'a> Parser<'a> {
             Tok::Ident(_) if self.peek_at(1) == &Tok::FatArrow => {
                 let p = self.pattern()?;
                 self.advance();
+                let body = self.expr()?;
+                let span = start.to(body.span);
+                return Ok(Expr { kind: ExprKind::Lambda(Rc::new(Lambda { params: vec![p], body })), span });
+            }
+            Tok::LBracket if self.parens_then_arrow() => {
+                let p = self.pattern()?;
+                self.expect(&Tok::FatArrow, "`=>`")?;
                 let body = self.expr()?;
                 let span = start.to(body.span);
                 return Ok(Expr { kind: ExprKind::Lambda(Rc::new(Lambda { params: vec![p], body })), span });
@@ -424,14 +435,30 @@ impl<'a> Parser<'a> {
         self.or()
     }
 
-    /// At `(`: is this the parameter list of a lambda?
+    /// At `if`: is this an if-expression (`then` before the line's `:`)?
+    fn if_is_expr(&self) -> bool {
+        let mut depth = 0;
+        for t in &self.t[self.i..] {
+            match t.tok {
+                Tok::LParen | Tok::LBracket => depth += 1,
+                Tok::RParen | Tok::RBracket => depth -= 1,
+                Tok::Then => return true,
+                Tok::Colon if depth == 0 => return false,
+                Tok::Newline | Tok::Eof => return false,
+                _ => {}
+            }
+        }
+        false
+    }
+
+    /// At `(` or `[`: is this a lambda's parameters (followed by `=>`)?
     fn parens_then_arrow(&self) -> bool {
         let mut depth = 0;
         let mut j = self.i;
         while j < self.t.len() {
             match self.t[j].tok {
-                Tok::LParen => depth += 1,
-                Tok::RParen => {
+                Tok::LParen | Tok::LBracket => depth += 1,
+                Tok::RParen | Tok::RBracket => {
                     depth -= 1;
                     if depth == 0 {
                         return self.t.get(j + 1).is_some_and(|t| t.tok == Tok::FatArrow);

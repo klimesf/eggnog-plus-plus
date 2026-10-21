@@ -6,7 +6,18 @@ Agreed decisions only. Open questions live in PLAN.md.
 
 ### Generics
 
-Only the built-in containers take type parameters: `Vec<T>`, `Map<K, V>`, `Set<T>`, `Deque<T>`, `Heap<T>` and the grid type (final names not settled yet). User code cannot declare generic functions or types. The compiler hard-codes the signatures of built-in methods and generates a separate version of each container for every element type used.
+Only the built-in containers take type parameters: `Set<T>`, `Map<K, V>`, `Queue<T>`, `Stack<T>`, `MinQueue<T>` and `Grid<T>`. User code cannot declare generic functions or types. The compiler hard-codes the signatures of built-in methods and generates a separate version of each container for every element type used.
+
+### Type notation
+
+A type is written the way its values look where there is a literal for them, and as `Name<T>` where there isn't:
+
+- `int`, `float`, `char`, `string`, `bool`
+- tuples: `(int, int)`, like the tuple `(1, 2)`
+- lists: `[int]`, like the list `[1, 2]`; nested: `[[char]]`
+- the other containers: `Set<(int, int)>`, `Map<string, int>`, `Queue<T>`, `Stack<T>`, `MinQueue<T>`, `Grid<char>`
+
+Types appear only after `:` in a parameter and after `->`, so `[int]` never clashes with a list expression like `[x] * n`.
 
 ### Numbers
 
@@ -18,6 +29,7 @@ Only the built-in containers take type parameters: `Vec<T>`, `Map<K, V>`, `Set<T
 ### Characters and strings
 
 - `char` is a single byte, meant for ASCII. There is no Unicode support.
+- Chars compare by their code (`c >= 'a'`), and `char - char` is the `int` distance between them: `c - 'a' + 1`. That's the only arithmetic on chars: `'a' + 1` is an error.
 - `s.split(sep)`: a lazy chain of the parts of `s` between occurrences of `sep`: `input.split("\n\n")` gives the blank-line-separated sections.
 - `s.int()`: parses the whole string as an integer (optional leading `-`, digits only). Traps on anything else. To pull numbers *out of* text, use `ints()`.
 - `s.split_once(sep)` → a pair `(before, after)` of strings. Traps if `sep` doesn't occur.
@@ -140,6 +152,9 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 - `min()` / `max()` (and similar terminals with no answer on an empty chain) return a maybe-value: they trap on an empty chain unless used in a conditional binding.
 - `max(count = n)` / `min(count = n)` return a list of the `n` largest/smallest elements, largest/smallest first. They trap if the chain has fewer than `n`.
 - `take(n)` / `skip(n)` are lazy steps: the first `n` elements / everything after the first `n`. `take` stops pulling as soon as it has `n`, so `(0..).take(3)` ends.
+- `chunks(n)` groups the elements into lists of `n`, one after the other: `lines.chunks(3)` gives lines 1–3, then 4–6. The last list is shorter if the elements don't divide evenly. Lazy.
+- `windows(n)` gives every run of `n` consecutive elements as a list, overlapping: `[1, 2, 3, 4].windows(3)` gives `[1, 2, 3], [2, 3, 4]`. Nothing if there are fewer than `n`. Lazy.
+- `a.intersection(b)` keeps the elements of `a` that are `in b`. It's a lazy step (a noun, so it doesn't allocate): the order and duplicates of `a` are kept, and `.to_set()` makes a set of it. `b` is a string, list or `Set`. The cost is |a| × (cost of `in b`): O(|a|) for a Set, O(|a| · |b|) for a list. For a string, the compiler can first mark `b`'s chars in a 256-entry table on the stack, giving O(|a| + |b|). Typical use: `a.intersection(b).intersection(c).first()` for the one item three strings share.
 - `to_sorted(by = f, desc = false)` returns a new sorted list (it allocates, hence `to_`). `by` gives the sort key, and `desc = true` sorts largest first. The sort is stable. Tuples compare element by element.
 
 ## Not included (for now)
@@ -217,7 +232,7 @@ memo fun blink(stone: int, blinks: int) -> int:
 
 ### Lambdas
 
-- Syntax: `p => expr`, `(a, b) => expr`, with optional types `(p: int) => expr`.
+- Syntax: `p => expr`, `(a, b) => expr`, with optional types `(p: int) => expr`. A single parameter can destructure a list: `.map([a, b, c] => …)` (traps if the length doesn't match, like `let [a, b, c] = xs`).
 - **Lambdas cannot escape.** A lambda can only be written directly as an argument to a call. It can't be stored in a variable, returned, or put in a container.
 - Because of that, lambdas capture variables by reference (`.filter(n => seen.add(n))` changes the real `seen`). They need no allocation, and built-in methods (`map`, `filter`, `flat_map`, `any`, …) inline them into plain loops.
 
