@@ -11,7 +11,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 - **Compiler written in Rust.** Self-hosting is an optional later milestone.
 - **Output:** a native macOS ARM64 executable. `eggnog build day12.egg` produces `./day12`, with no VM.
 - **Backend:** Cranelift (pure Rust, ARM64 backend, easy via Cargo). LLVM later only if benchmarks call for it.
-- **Syntax:** Rust-like keywords and types, Python-style indented blocks with `:`. No lifetimes or borrow checker. Structs and enums are not designed yet.
+- **Syntax:** Rust-like keywords and types, Python-style indented blocks with `:`. No lifetimes or borrow checker. No structs or enums so far (see "Declined for now").
 - **Memory:** value semantics (assignment copies) and no freeing: allocation is a pointer bump, and the OS reclaims memory at exit. If a puzzle runs out of memory, free values when they're overwritten or go out of scope (every value has exactly one owner, so no reference counting).
 - **Standard library implemented in Rust:** `input` and its parsing methods, `Grid`, the collections and chain operations are Rust code. In an interpreter they are methods on `Value`; in the compiler they become a runtime library. Filip's `advent-of-code/src/utils/grid.rs` is a starting point for `Grid`, after fixing its two known bugs (width with a trailing newline, no per-axis bounds check).
 
@@ -33,7 +33,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 ## Status
 
-- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d6, 2023 d1. All 18 part files pass on the real inputs. Suggested next: 2022 d10 (multi-line string answer), 2023 d7, 2023 d5, 2023 d14, 2025 d11 (a `memo fun` with its own cache per call).
+- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d6, d11, d12, 2023 d1. All 22 part files pass on the real inputs. Suggested next: 2022 d10 (multi-line string answer), 2023 d7, 2023 d5, 2023 d14, 2025 d11 (a `memo fun` with its own cache per call).
 - **Step 2:** Filip has started (`interpreter/`, see its `GUIDE.md` for the 11-slice roadmap). The lexer, parser and evaluator still have `todo!()`s.
 - Toolchain: rustc/cargo 1.99.1, Xcode installed, arm64.
 
@@ -58,9 +58,10 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 ## Declined for now
 
-- **Function references** (`.map(eval_round)`). The implicit `it` mostly covers this: `.map(eval_round(it))`. Rules if it comes back: only directly as an argument (never stored), the parameter count must match, no `inout`, no default parameters at first, user functions only. Method references (`.map(\.int)`) don't help much, because most lambdas are method chains.
+- **Function references** (`.map(eval_round)`). The implicit `it` mostly covers this: `.map(eval_round(it))`. Rules if it comes back: only directly as an argument (never stored), the parameter count must match, no `inout`, no default parameters at first, user functions only. Method references (`.map(\.int)`) don't help much, because most lambdas are method chains. Storing or returning a function (a monkey's operation in 2022 d11) is a bigger step: escaping closures need capture by value, heap-allocated environments, function types and indirect calls. Store the operation as data instead (the `"old * 19"` string) and interpret it with a plain `fun apply(operation, old)`.
 - **Regex:** `ints()`, `split_once` and list destructuring cover AoC's input formats.
 - **`letters()`** (OCR for AoC's block-letter font).
 - **Built-in `bfs` / `dijkstra`:** writing the algorithms is the point.
 - **`for_each` on chains:** `for x in chain.filter(…): …` already fits on one line, and a `for` body can grow to several statements.
+- **Structs:** a struct holding only constants is a named tuple, and tuple destructuring names the fields where they're used: `for (i, (operation, div, if_true, if_false)) in monkeys.enumerate():` (2022 d11, with the changing `items` in their own list). Revisit when a puzzle has a record with many fields used in many places, or fields that change inside a collection (`monkeys[i].items.push(x)`).
 - **`unique()`:** `xs.to_set().len() == n` already tests for distinct elements, and a lazy `unique` would allocate a hidden set.
