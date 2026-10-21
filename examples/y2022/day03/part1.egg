@@ -1,0 +1,18 @@
+fun priority(c: char) -> int:
+  if c >= 'a' and c <= 'z' then c - 'a' + 1 else c - 'A' + 27
+
+input.lines()
+  .map(line => (line[0..line.len() / 2], line[line.len() / 2..]))
+  .map((a, b) => a.intersection(b).first())
+  .map(c => to_value(c))
+  .sum()
+
+test """
+vJrwpWtwJgWrhcsFMMfFFhFp
+jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
+PmmdzqPrVvPwwTWBwg
+wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
+ttgJtRGJQctTZtZT
+CrZsJsPPZsGzwwsLwLmpwMDw
+""" == 157
+test file("input.txt") == 8233
