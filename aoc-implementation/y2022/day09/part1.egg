@@ -1,0 +1,36 @@
+let head = (0, 0)
+let tail = (0, 0)
+let visited = Set(tail)
+
+fun follow():
+  if head == tail or head - tail in Dirs8: return
+  if head[0] != tail[0]:
+    tail += if head[0] < tail[0] then Up else Down
+  if head[1] != tail[1]:
+    tail += if head[1] < tail[1] then Left else Right
+  visited.add(tail)
+
+for line in input.lines():
+  let (dir, steps) = line.split_once(" ")
+  let step = match dir:
+    "U": Up
+    "R": Right
+    "D": Down
+    "L": Left
+  for _ in 0..steps.int():
+    head += step
+    follow()
+
+visited.len()
+
+test """
+R 4
+U 4
+L 3
+D 1
+R 4
+D 1
+L 5
+R 2
+""" == 13
+test file("input.txt") == 5619

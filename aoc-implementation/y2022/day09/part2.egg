@@ -1,0 +1,46 @@
+let knots = [(0, 0)] * 10
+let visited = Set(knots[9])
+
+fun follow(head: (int, int), inout tail: (int, int)):
+  if head == tail or head - tail in Dirs8: return
+  if head[0] != tail[0]:
+    tail += if head[0] < tail[0] then Up else Down
+  if head[1] != tail[1]:
+    tail += if head[1] < tail[1] then Left else Right
+
+for line in input.lines():
+  let (dir, steps) = line.split_once(" ")
+  let step = match dir:
+    "U": Up
+    "R": Right
+    "D": Down
+    "L": Left
+  for _ in 0..steps.int():
+    knots[0] = knots[0] + step
+    for i in 1..10:
+      follow(knots[i - 1], &knots[i])
+    visited.add(knots.last())
+
+visited.len()
+
+test """
+R 4
+U 4
+L 3
+D 1
+R 4
+D 1
+L 5
+R 2
+""" == 1
+test """
+R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20
+""" == 36
+test file("input.txt") == 2376
