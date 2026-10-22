@@ -1,0 +1,20 @@
+let grid = input.to_digit_grid()
+
+fun is_visible(pos: (int, int)) -> bool:
+  for dir in Dirs4:
+    for i in 1..:
+      let pos_i = pos + i * dir
+      if pos_i !in grid: return true
+      if grid[pos_i] >= grid[pos]: break
+  return false
+
+grid.positions().count(is_visible(it))
+
+test """
+30373
+25512
+65332
+33549
+35390
+""" == 21
+test file("input.txt") == 1776

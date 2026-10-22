@@ -1,0 +1,23 @@
+let grid = input.to_digit_grid()
+
+fun scenic_score(pos: (int, int)) -> int:
+  let score = 1
+  for dir in Dirs4:
+    let seen = 0
+    for i in 1..:
+      if pos + i * dir !in grid: break
+      seen += 1
+      if grid[pos] <= grid[pos + i * dir]: break
+    score *= seen
+  score
+
+grid.positions().map(scenic_score(it)).max()
+
+test """
+30373
+25512
+65332
+33549
+35390
+""" == 8
+test file("input.txt") == 234416
