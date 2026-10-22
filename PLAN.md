@@ -33,7 +33,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 ## Status
 
-- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d6, d11, d12, 2023 d1. All 22 part files pass on the real inputs. Suggested next: 2022 d10 (multi-line string answer), 2023 d7, 2023 d5, 2023 d14, 2025 d11 (a `memo fun` with its own cache per call).
+- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d7, d11, d12, 2023 d1. All 24 part files pass on the real inputs. Suggested next: 2022 d10 (multi-line string answer), 2023 d7, 2023 d5, 2023 d14, 2025 d11 (a `memo fun` with its own cache per call).
 - **Step 2:** Filip has started (`interpreter/`, see its `GUIDE.md` for the 11-slice roadmap). The lexer, parser and evaluator still have `todo!()`s.
 - Toolchain: rustc/cargo 1.99.1, Xcode installed, arm64.
 
