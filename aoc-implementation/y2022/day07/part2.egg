@@ -1,0 +1,44 @@
+let open = Stack()
+let sizes = []
+
+fun close():
+  let size = open.pop()
+  sizes.push(size)
+  if parent = open.pop(): open.push(parent + size)
+
+for line in input.lines():
+  if line == "$ cd ..": close()
+  else if line.starts_with("$ cd "): open.push(0)
+  else if size = line.ints().first(): open.push(open.pop() + size)
+while open.len() > 0: close()
+
+let unused = 70000000 - sizes.max() # root is always the largest
+let missing = 30000000 - unused
+sizes.filter(it >= missing).min()
+
+test """
+$ cd /
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d
+$ cd a
+$ ls
+dir e
+29116 f
+2557 g
+62596 h.lst
+$ cd e
+$ ls
+584 i
+$ cd ..
+$ cd ..
+$ cd d
+$ ls
+4060174 j
+8033020 d.log
+5626152 d.ext
+7214296 k
+""" == 24933642
+test file("input.txt") == 4443914
