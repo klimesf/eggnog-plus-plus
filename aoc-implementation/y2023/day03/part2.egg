@@ -1,0 +1,40 @@
+let grid = input.to_char_grid()
+
+let number_at = Map()
+let numbers = []
+for r in 0..grid.rows():
+  let num = 0
+  for c in 0..=grid.cols():
+    let pos = (r, c)
+    if pos in grid and grid[pos].is_digit():
+      num = num * 10 + grid[pos].digit()
+      number_at[pos] = numbers.len()
+    else if num != 0:
+      numbers.push(num)
+      num = 0
+
+fun gear_ratio(pos: (int, int)) -> int:
+  let adjacent = grid.neighbors8(pos)
+    .filter(it in number_at)
+    .map(number_at[it])
+    .to_set()
+  if adjacent.len() == 2 then adjacent.map(numbers[it]).product() else 0
+
+grid.positions()
+  .filter(grid[it] == '*')
+  .map(gear_ratio(it))
+  .sum()
+
+test """
+467..114..
+...*......
+..35..633.
+......#...
+617*......
+.....+.58.
+..592.....
+......755.
+...$.*....
+.664.598..
+""" == 467835
+test file("input.txt") == 84159075

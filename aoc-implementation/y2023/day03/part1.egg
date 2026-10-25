@@ -1,0 +1,36 @@
+let grid = input.to_char_grid()
+
+let near_symbol = grid.positions()
+  .filter(!grid[it].is_digit() and grid[it] != '.')
+  .flat_map(grid.neighbors8(it))
+  .to_set()
+
+let ans = 0
+for row in 0..grid.rows():
+  let num = 0
+  let is_near = false
+
+  for col in 0..=grid.cols(): # account for numbers at the end of a row
+    let pos = (row, col)
+    if pos in grid and grid[pos].is_digit():
+      num = num * 10 + grid[pos].digit()
+      is_near = is_near or pos in near_symbol
+    else:
+      if is_near: ans += num
+      is_near = false
+      num = 0
+ans
+
+test """
+467..114..
+...*......
+..35..633.
+......#...
+617*......
+.....+.58.
+..592.....
+......755.
+...$.*....
+.664.598..
+""" == 4361
+test file("input.txt") == 539713
