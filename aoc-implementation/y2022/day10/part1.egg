@@ -1,0 +1,11 @@
+let xs = input.lines()
+  .flat_map(if it == "noop" then [0] else [0, it.ints().first()])
+  .scan(1, (acc, x) => acc + x)
+  .to_list()
+
+[20, 60, 100, 140, 180, 220]
+  .map(xs[it - 2] * it) # scan's init is not yielded, so we need to go -2
+  .sum()
+
+test file("test.txt") == 13140
+test file("input.txt") == 17180
