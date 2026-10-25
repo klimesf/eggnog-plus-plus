@@ -599,7 +599,6 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
             let digits = n.unsigned_abs().to_string().bytes().map(|b| Value::Int((b - b'0') as i64)).collect();
             return Ok(chain_of(digits, span));
         }
-        (Value::Int(n), "abs") => return n.checked_abs().map(Value::Int).ok_or_else(|| overflow(span)),
         (Value::List(xs) | Value::Tuple(xs) | Value::Stack(xs), "len") => return Ok(Value::Int(xs.len() as i64)),
         (Value::List(xs) | Value::Stack(xs), "is_empty") => return Ok(Value::Bool(xs.is_empty())),
         (Value::Stack(xs), "top") => return Ok(xs.last().cloned().unwrap_or(Value::Missing)),
@@ -620,7 +619,7 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
     // Everything iterable gets the chain methods.
     if matches!(
         name,
-        "map" | "filter" | "flat_map" | "enumerate" | "scan" | "take" | "skip" | "rev" | "sum" | "count" | "any" | "all" | "min"
+        "map" | "filter" | "flat_map" | "enumerate" | "scan" | "take" | "skip" | "rev" | "sum" | "product" | "count" | "any" | "all" | "min"
             | "max" | "first" | "last" | "find" | "find_last" | "position" | "to_list" | "to_set" | "to_map" | "to_string"
             | "to_sorted" | "is_empty" | "chunks" | "windows" | "intersection"
     ) {
@@ -745,6 +744,17 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
                 Ok(true)
             })?;
             Ok(acc.unwrap_or(Value::Int(0)))
+        }
+        "product" => {
+            let mut acc = Value::Int(1);
+            it.drive(chain, &mut |_, v| {
+                if !matches!(v, Value::Int(_)) {
+                    return Err(Error::runtime(format!("product() multiplies ints, found {}", describe(&v)), span));
+                }
+                acc = binary(BinOp::Mul, acc.clone(), v, span)?;
+                Ok(true)
+            })?;
+            Ok(acc)
         }
         "count" => {
             let pred = a.pos.first().cloned();

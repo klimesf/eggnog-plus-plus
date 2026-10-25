@@ -14,9 +14,9 @@
   "functions": [
     { "name": "panic", "sig": "panic(message)", "doc": "Stops the program with an error message." },
     { "name": "print", "sig": "print(values…)", "doc": "Prints to stderr, for debugging. *(reference interpreter extra)*" },
-    { "name": "min", "sig": "min(a, b)", "doc": "The smaller of two values. *(reference interpreter extra)*" },
-    { "name": "max", "sig": "max(a, b)", "doc": "The larger of two values. *(reference interpreter extra)*" },
-    { "name": "abs", "sig": "abs(n: int) -> int", "doc": "Absolute value. *(reference interpreter extra)*" },
+    { "name": "min", "sig": "min(a, b)", "doc": "The smaller of two values of the same type (ints, chars, tuples…)." },
+    { "name": "max", "sig": "max(a, b)", "doc": "The larger of two values of the same type (ints, chars, tuples…): `best = max(best, x)`." },
+    { "name": "abs", "sig": "abs(n: int) -> int", "doc": "Absolute value: `abs(r1 - r2) + abs(c1 - c2)`. Traps on `int::Min`." },
     { "name": "Set", "sig": "Set(first?)", "doc": "A new set, empty or with one element. From a collection: `xs.to_set()`." },
     { "name": "Map", "sig": "Map(default = v?)", "doc": "A new map. With `default`, missing keys read as `v`, so `counts[k] += 1` works. Without it, a missing key traps." },
     { "name": "Queue", "sig": "Queue(first?)", "doc": "First in, first out. `push(x)`; `pop()` is a maybe-value." },
@@ -42,7 +42,6 @@
     { "name": "is_letter", "on": "char", "sig": "is_letter() -> bool", "doc": "`'a'`…`'z'`, `'A'`…`'Z'`." },
     { "name": "digit", "on": "char", "sig": "digit() -> int", "doc": "`'7'` → 7. Traps on non-digits." },
     { "name": "dir", "on": "char", "sig": "dir() -> (int, int)", "doc": "`^ > v <` or `U R D L` → `Up` / `Right` / `Down` / `Left`." },
-    { "name": "abs", "on": "int", "sig": "abs() -> int", "doc": "Absolute value." },
 
     { "name": "len", "on": "string · list · Set · Map · Queue · Stack · MinQueue", "sig": "len() -> int", "doc": "Number of elements." },
     { "name": "is_empty", "on": "everything iterable", "sig": "is_empty() -> bool", "doc": "No elements?" },
@@ -76,6 +75,7 @@
     { "name": "skip", "on": "chain", "sig": "skip(n)", "doc": "Lazy: everything after the first `n`." },
     { "name": "rev", "on": "list · string · range", "sig": "rev()", "doc": "Lazy: reverse order. Not available after map/filter/…" },
     { "name": "sum", "on": "chain", "sig": "sum()", "doc": "Adds all elements (0 when empty). Works on points too." },
+    { "name": "product", "on": "chain", "sig": "product()", "doc": "Multiplies all elements (1 when empty). Ints only; traps on overflow." },
     { "name": "count", "on": "chain", "sig": "count(x?)", "doc": "Number of elements; with a char/value, counts equal ones (`s.count('(')`)." },
     { "name": "any", "on": "chain", "sig": "any(x => bool) -> bool", "doc": "Is it true for some element? Stops at the first." },
     { "name": "all", "on": "chain", "sig": "all(x => bool) -> bool", "doc": "Is it true for every element? *(reference interpreter extra)*" },
