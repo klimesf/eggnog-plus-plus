@@ -152,7 +152,9 @@ fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
         (Value::Char(x), Value::Char(y)) if op == Sub => Ok(Value::Int(*x as i64 - *y as i64)),
         (Value::Str(x), Value::Str(y)) if op == Add => Ok(Value::Str(format!("{x}{y}").into())),
         (Value::Str(x), Value::Char(y)) if op == Add => Ok(Value::Str(format!("{x}{}", *y as char).into())),
-        (Value::List(x), Value::List(y)) if op == Add => Ok(Value::List(Rc::new(x.iter().chain(y.iter()).cloned().collect()))),
+        (Value::List(_), Value::List(_)) if op == Add => {
+            Err(Error::runtime("lists can't be joined with `+`; append with `xs.push(x)`, or join with `[xs, ys].flat_map(it)`", span))
+        }
         (Value::List(x), Value::Int(n)) if op == Mul => {
             if *n < 0 {
                 return Err(Error::runtime("can't repeat a list a negative number of times", span));

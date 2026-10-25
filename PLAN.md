@@ -33,7 +33,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 ## Status
 
-- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d7, d11, d12, 2023 d1. All 24 part files pass on the real inputs. Suggested next: 2022 d10 (multi-line string answer), 2023 d7, 2023 d5, 2023 d14, 2025 d11 (a `memo fun` with its own cache per call).
+- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d12, 2023 d1. All 30 part files pass on the real inputs. Suggested next: 2023 d9, 2023 d4, 2023 d2, 2023 d7, 2023 d5, 2023 d14, 2025 d11 (a `memo fun` with its own cache per call).
 - **Step 2:** Filip has started (`interpreter/`, see its `GUIDE.md` for the 11-slice roadmap). The lexer, parser and evaluator still have `todo!()`s.
 - Toolchain: rustc/cargo 1.99.1, Xcode installed, arm64.
 
@@ -64,4 +64,5 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 - **Built-in `bfs` / `dijkstra`:** writing the algorithms is the point.
 - **`for_each` on chains:** `for x in chain.filter(…): …` already fits on one line, and a `for` body can grow to several statements.
 - **Structs:** a struct holding only constants is a named tuple, and tuple destructuring names the fields where they're used: `for (i, (operation, div, if_true, if_false)) in monkeys.enumerate():` (2022 d11, with the changing `items` in their own list). Revisit when a puzzle has a record with many fields used in many places, or fields that change inside a collection (`monkeys[i].items.push(x)`).
+- **List `+`:** append with `xs.push(x)`, join with `[xs, ys].flat_map(it)` (lazy). `acc = acc + [x]` would invite a quadratic copy each step, and `+` already means element-wise addition on tuples (`pos + Up`). No solution has needed it yet (2022 d10 was better without it). If joins keep coming up, consider `xs += ys` only, as an in-place append. The reference interpreter rejects list `+`.
 - **`unique()`:** `xs.to_set().len() == n` already tests for distinct elements, and a lazy `unique` would allocate a hidden set.
