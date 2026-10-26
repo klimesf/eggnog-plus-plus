@@ -1,0 +1,1 @@
+error: `power` should return bool, but returned int 3

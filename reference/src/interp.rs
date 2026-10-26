@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::rc::Rc;
 
+use crate::types;
 use crate::ast::*;
 use crate::builtins::{self, Args};
 use crate::error::{Error, Result, Span};
@@ -52,7 +53,11 @@ impl Interp {
             Flow::Return(v) | Flow::Normal(Some(v)) => v,
             Flow::Normal(None) => {
                 let span = program.body.iter().rev().find(|s| !is_test(s)).map_or(Span::default(), |s| s.span);
-                return Err(Error::runtime("the program has no answer: its last statement must be an expression (or use `return`)", span));
+                let hint = if ends_with_block_if(&program.body) { BLOCK_IF_HINT } else { "" };
+                return Err(Error::runtime(
+                    format!("the program has no answer: its last statement must be an expression (or use `return`){hint}"),
+                    span,
+                ));
             }
             Flow::Break | Flow::Continue => return Err(Error::runtime("`break`/`continue` outside a loop", Span::default())),
         };
@@ -168,9 +173,11 @@ impl Interp {
         let mut last = None;
         for s in stmts {
             match self.exec_stmt(s)? {
+                // A block `if` is a statement, so it never gives the block its value
+                // (the expression form is `if c then a else b`).
                 Flow::Normal(v) => {
                     if !is_test(s) {
-                        last = v;
+                        last = if matches!(s.kind, StmtKind::If { .. }) { None } else { v };
                     }
                 }
                 other => return Ok(other),
@@ -554,6 +561,14 @@ impl Interp {
                 (None, None) => return Err(Error::runtime(format!("missing argument `{}` for `{}`", p.name, decl.name), span)),
             });
         }
+        for (p, v) in decl.params.iter().zip(full.iter()) {
+            if !types::fits(v, &p.ty) {
+                return Err(Error::runtime(
+                    format!("`{}` expects `{}: {}`, got {}", decl.name, p.name, p.ty, types::describe_typed(v)),
+                    span,
+                ));
+            }
+        }
         if decl.memo {
             if !refs.is_empty() {
                 return Err(Error::runtime("a memo fun can't take inout parameters", span));
@@ -573,10 +588,27 @@ impl Interp {
             }
         }
         let flow = self.in_env(call_env.clone(), |s| s.exec_stmts(&decl.body))?;
+        let explicit_return = matches!(flow, Flow::Return(_));
         let result = match flow {
             Flow::Return(v) | Flow::Normal(Some(v)) => v,
             Flow::Normal(None) => Value::Unit,
             Flow::Break | Flow::Continue => return Err(Error::runtime("`break`/`continue` outside a loop", decl.span)),
+        };
+        let result = match &decl.ret {
+            Some(t) if !types::fits(&result, t) => {
+                let got = if matches!(result, Value::Unit) { "nothing".to_string() } else { types::describe_typed(&result) };
+                let hint = if matches!(result, Value::Unit) && ends_with_block_if(&decl.body) { BLOCK_IF_HINT } else { "" };
+                return Err(Error::runtime(format!("`{}` should return {t}, but returned {got}{hint}", decl.name), span));
+            }
+            Some(_) => result,
+            // No `-> T`: the function returns nothing, whatever its last line evaluates to.
+            None if explicit_return && !matches!(result, Value::Unit) => {
+                return Err(Error::runtime(
+                    format!("`{}` returns a value but its signature has no `-> T`", decl.name),
+                    span,
+                ));
+            }
+            None => Value::Unit,
         };
         for (idx, place) in refs {
             let v = call_env.borrow().vars.get(&decl.params[idx].name).cloned().unwrap();
@@ -807,6 +839,12 @@ pub enum StageState {
     Count(i64),
     Acc(Value),
     Buf(VecDeque<Value>),
+}
+
+const BLOCK_IF_HINT: &str = "; a block `if` is a statement, so write `if c then a else b` to get a value";
+
+fn ends_with_block_if(body: &[Stmt]) -> bool {
+    body.iter().rev().find(|s| !is_test(s)).is_some_and(|s| matches!(s.kind, StmtKind::If { .. }))
 }
 
 pub fn is_test(s: &Stmt) -> bool {

@@ -327,53 +327,82 @@ impl<'a> Parser<'a> {
             if !self.eat(&Tok::Colon) {
                 return Err(Error::parse(format!("parameter `{pname}` needs a type (`{pname}: int`)"), pspan));
             }
-            self.skip_type()?;
+            let ty = self.ty()?;
             let default = if self.eat(&Tok::Assign) { Some(self.expr()?) } else { None };
             if default.is_some() {
                 seen_default = true;
             } else if seen_default {
                 return Err(Error::parse("parameters with defaults must come after those without", pspan));
             }
-            params.push(Param { name: pname, inout, default });
+            params.push(Param { name: pname, ty, inout, default });
             if !self.eat(&Tok::Comma) {
                 self.expect(&Tok::RParen, "`,` or `)`")?;
                 break;
             }
         }
-        if self.eat(&Tok::Arrow) {
-            self.skip_type()?;
-        }
+        let ret = if self.eat(&Tok::Arrow) { Some(self.ty()?) } else { None };
         let body = self.block()?;
-        Ok(FunDecl { name, params, memo, body, span: start })
+        Ok(FunDecl { name, params, ret, memo, body, span: start })
     }
 
-    /// Types are parsed and ignored: the reference interpreter is dynamically typed.
-    fn skip_type(&mut self) -> Result<()> {
+    fn ty(&mut self) -> Result<Type> {
         if self.eat(&Tok::LBracket) {
-            self.skip_type()?;
-            return self.expect(&Tok::RBracket, "`]` in a list type").map(|_| ());
+            let elem = self.ty()?;
+            self.expect(&Tok::RBracket, "`]` in a list type")?;
+            return Ok(Type::List(Box::new(elem)));
         }
         if self.eat(&Tok::LParen) {
+            let mut elems = Vec::new();
             while !self.eat(&Tok::RParen) {
-                self.skip_type()?;
+                elems.push(self.ty()?);
                 if !self.eat(&Tok::Comma) {
                     self.expect(&Tok::RParen, "`)` in a tuple type")?;
                     break;
                 }
             }
-            return Ok(());
+            return Ok(Type::Tuple(elems));
         }
-        self.ident("a type")?;
+        let span = self.span();
+        let name = self.ident("a type")?;
+        let mut args = Vec::new();
         if self.eat(&Tok::Lt) {
             loop {
-                self.skip_type()?;
+                args.push(self.ty()?);
                 if self.eat(&Tok::Gt) {
                     break;
                 }
                 self.expect(&Tok::Comma, "`,` or `>` in a type")?;
             }
         }
-        Ok(())
+        let (ty, arity) = match &*name {
+            "int" => (Type::Int, 0),
+            "bool" => (Type::Bool, 0),
+            "char" => (Type::Char, 0),
+            "string" => (Type::Str, 0),
+            "float" => (Type::Float, 0),
+            "Set" => (Type::Container("Set", Vec::new()), 1),
+            "Map" => (Type::Container("Map", Vec::new()), 2),
+            "Queue" => (Type::Container("Queue", Vec::new()), 1),
+            "Stack" => (Type::Container("Stack", Vec::new()), 1),
+            "MinQueue" => (Type::Container("MinQueue", Vec::new()), 1),
+            "Grid" => (Type::Container("Grid", Vec::new()), 1),
+            _ => {
+                let hint = if &*name == "str" { "; did you mean `string`?" } else { "" };
+                return Err(Error::parse(format!("unknown type `{name}`{hint}"), span));
+            }
+        };
+        if args.len() != arity {
+            let want = match arity {
+                0 => "no type parameters".to_string(),
+                1 => "one type parameter".to_string(),
+                n => format!("{n} type parameters"),
+            };
+            return Err(Error::parse(format!("`{name}` takes {want}"), span));
+        }
+        Ok(match ty {
+            Type::Container(n, _) => Type::Container(n, args),
+            t => t,
+        })
     }
 
     fn pattern(&mut self) -> Result<Pattern> {
@@ -427,8 +456,9 @@ impl<'a> Parser<'a> {
                 let mut params = Vec::new();
                 while !self.eat(&Tok::RParen) {
                     params.push(self.pattern()?);
+                    // Lambda parameter types are optional and not checked.
                     if self.eat(&Tok::Colon) {
-                        self.skip_type()?;
+                        self.ty()?;
                     }
                     if !self.eat(&Tok::Comma) {
                         self.expect(&Tok::RParen, "`,` or `)`")?;

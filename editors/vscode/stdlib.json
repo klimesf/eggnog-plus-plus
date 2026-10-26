@@ -78,7 +78,7 @@
     { "name": "product", "on": "chain", "sig": "product()", "doc": "Multiplies all elements (1 when empty). Ints only; traps on overflow." },
     { "name": "count", "on": "chain", "sig": "count(x?)", "doc": "Number of elements; with a char/value, counts equal ones (`s.count('(')`)." },
     { "name": "any", "on": "chain", "sig": "any(x => bool) -> bool", "doc": "Is it true for some element? Stops at the first." },
-    { "name": "all", "on": "chain", "sig": "all(x => bool) -> bool", "doc": "Is it true for every element? *(reference interpreter extra)*" },
+    { "name": "all", "on": "chain", "sig": "all(x => bool) -> bool", "doc": "Is it true for every element? `true` for an empty chain." },
     { "name": "min", "on": "chain", "sig": "min() / min(count = n)", "doc": "The smallest element (**maybe-value**), or a list of the `n` smallest." },
     { "name": "max", "on": "chain", "sig": "max() / max(count = n)", "doc": "The largest element (**maybe-value**), or a list of the `n` largest, largest first." },
     { "name": "first", "on": "chain", "sig": "first()", "doc": "The first element. **Maybe-value**." },

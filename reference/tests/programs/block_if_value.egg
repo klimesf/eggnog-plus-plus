@@ -1,0 +1,5 @@
+fun ratio(n: int) -> int:
+  if n == 2:
+    n * 3
+  else: 0
+ratio(2)

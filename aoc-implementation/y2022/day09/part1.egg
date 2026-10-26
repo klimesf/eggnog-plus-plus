@@ -3,11 +3,10 @@ let tail = (0, 0)
 let visited = Set(tail)
 
 fun follow():
-  if head == tail or head - tail in Dirs8: return
-  if head[0] != tail[0]:
-    tail += if head[0] < tail[0] then Up else Down
-  if head[1] != tail[1]:
-    tail += if head[1] < tail[1] then Left else Right
+  let (dr, dc) = head - tail
+  if head == tail or (dr, dc) in Dirs8: return
+  if dr != 0: tail += if dr < 0 then Up else Down
+  if dc != 0: tail += if dc < 0 then Left else Right
   visited.add(tail)
 
 for line in input.lines():

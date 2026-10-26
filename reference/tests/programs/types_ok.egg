@@ -1,0 +1,7 @@
+fun f(xs: [(int, char)], m: Map<string, [int]>, g: Grid<char>, s: Set<(int, int)>) -> (int, bool):
+  (xs.len() + m["a"].len() + g.rows() + s.len(), true)
+fun nothing(xs: [int]):
+  xs.len()
+let m = Map(default = [])
+m["a"].push(4)
+(f([(1, 'a')], m, "ab\ncd".to_char_grid(), Set((0, 0))), nothing([]), f([], m, "x".to_char_grid(), Set()))

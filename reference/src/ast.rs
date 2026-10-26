@@ -60,6 +60,8 @@ pub enum MatchPat {
 pub struct FunDecl {
     pub name: Name,
     pub params: Vec<Param>,
+    /// `None` when the function returns nothing.
+    pub ret: Option<Type>,
     pub memo: bool,
     pub body: Vec<Stmt>,
     pub span: Span,
@@ -68,6 +70,7 @@ pub struct FunDecl {
 #[derive(Debug)]
 pub struct Param {
     pub name: Name,
+    pub ty: Type,
     pub inout: bool,
     pub default: Option<Expr>,
 }
@@ -136,4 +139,19 @@ pub enum BinOp {
 pub enum UnOp {
     Neg,
     Not,
+}
+
+/// A type written in a signature. The reference interpreter checks argument
+/// and return values against it at runtime (see `types.rs`).
+#[derive(Debug, Clone)]
+pub enum Type {
+    Int,
+    Bool,
+    Char,
+    Str,
+    Float,
+    List(Box<Type>),
+    Tuple(Vec<Type>),
+    /// `Set<T>`, `Map<K, V>`, `Queue<T>`, `Stack<T>`, `MinQueue<T>`, `Grid<T>`
+    Container(&'static str, Vec<Type>),
 }

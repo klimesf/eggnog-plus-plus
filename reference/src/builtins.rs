@@ -224,7 +224,10 @@ fn grid_pos(g: &GridV, k: &Value, span: Span) -> Result<usize> {
 
 pub fn index(c: &Value, k: &Value, span: Span) -> Result<Value> {
     match (c, k) {
-        (Value::List(xs) | Value::Tuple(xs), Value::Int(i)) => Ok(xs[list_index(*i, xs.len(), span)?].clone()),
+        (Value::List(xs), Value::Int(i)) => Ok(xs[list_index(*i, xs.len(), span)?].clone()),
+        (Value::Tuple(_), Value::Int(_)) => {
+            Err(Error::runtime("tuples can't be indexed; destructure them instead: `let (r, c) = pos`", span))
+        }
         (Value::List(xs), Value::Range { start, end }) => {
             let (s, e) = slice_bounds(*start, *end, xs.len(), span)?;
             Ok(Value::List(Rc::new(xs[s..e].to_vec())))

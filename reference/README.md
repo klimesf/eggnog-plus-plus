@@ -22,15 +22,19 @@ trailing newline is stripped, as the spec says.
 
 ## How it differs from the spec
 
-- **Dynamically typed.** Types in signatures are parsed and ignored, so type
-  errors show up at runtime, when the code runs.
+- **Dynamically typed, with runtime checks of signatures.** There is no type
+  checker. Instead, each argument and return value of a `fun` is checked
+  against its declared type when the function is called (`types.rs`).
+  Containers are checked by kind plus one sample element, so a list with a
+  wrong element further in can slip through. Unknown type names (`str`) are
+  parse errors. Types on lambda parameters and `let` are not checked.
 - **Runtime checks instead of compile-time ones.** Storing a chain, writing to
-  a read-only parameter, `&` on a non-`inout` parameter and similar mistakes
-  are runtime errors. The memo rule "don't change a captured variable after
-  the `memo fun` is defined" is **not** checked.
+  a read-only parameter, `&` on a non-`inout` parameter, indexing a tuple,
+  joining lists with `+`, and using a block `if` as a value are runtime errors.
+  The memo rule "don't change a captured variable after the `memo fun` is
+  defined" is **not** checked.
 - **No floats** yet.
-- **Extras not in SPEC.md:** `print(…)` (to stderr), `min(a, b)`, `max(a, b)`,
-  `abs(n)`, `count(pred)` / `count(value)`, `all(pred)`, `map.keys()`,
+- **Extras not in SPEC.md:** `print(…)` (to stderr), `map.keys()`,
   `map.values()`, iterating a `Map` yields `(key, value)`.
 - Iterating a `Set` or `Map` has no defined order.
 
