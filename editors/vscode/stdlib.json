@@ -17,6 +17,7 @@
     { "name": "min", "sig": "min(a, b)", "doc": "The smaller of two values of the same type (ints, chars, tuples…)." },
     { "name": "max", "sig": "max(a, b)", "doc": "The larger of two values of the same type (ints, chars, tuples…): `best = max(best, x)`." },
     { "name": "abs", "sig": "abs(n: int) -> int", "doc": "Absolute value: `abs(r1 - r2) + abs(c1 - c2)`. Traps on `int::Min`." },
+    { "name": "pow", "sig": "pow(base: int, exp: int, mod = m?) -> int", "doc": "`base` to the power `exp` (not negative); traps on overflow. With `mod = m`: modular exponentiation, result in `0..m`, never overflows." },
     { "name": "Set", "sig": "Set(first?)", "doc": "A new set, empty or with one element. From a collection: `xs.to_set()`." },
     { "name": "Map", "sig": "Map(default = v?)", "doc": "A new map. With `default`, missing keys read as `v`, so `counts[k] += 1` works. Without it, a missing key traps." },
     { "name": "Queue", "sig": "Queue(first?)", "doc": "First in, first out. `push(x)`; `pop()` is a maybe-value." },

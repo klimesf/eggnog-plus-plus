@@ -25,6 +25,7 @@ Types appear only after `:` in a parameter and after `->`, so `[int]` never clas
 - There are no implicit numeric conversions. Mixing types needs an explicit `as` (`x as float`). This keeps it cheap to add `i128` (or `u64`, `i32`) later, when a puzzle needs it.
 - **Integer overflow always traps**, in every build. That covers `+`, `-`, `*`, unary `-`, and `int::MIN / -1`. Division or remainder by zero also traps. A trap prints an error with the source location and exits with a non-zero status. If benchmarks show the checks matter, they can be limited to debug builds later.
 - `min(a, b)` / `max(a, b)` return the smaller/larger of two values of the same type, compared like `<` (ints, chars, tuples): `best = max(best, x)`. For a whole chain use the terminals `xs.min()` / `xs.max()`. `abs(n)` is the absolute value of an `int`, for Manhattan distances: `abs(r1 - r2) + abs(c1 - c2)`. It traps on `int::Min`, like other overflow.
+- `pow(base, exp)` raises an `int` to a non-negative `int` power: `pow(2, matches - 1)`. A negative exponent traps, and so does overflow. `pow(base, exp, mod = m)` is modular exponentiation: the result is in `0..m`, and it never overflows, even when `m` is close to `int::Max` (the runtime multiplies in 128 bits). There is no `**` operator.
 - Floats follow IEEE rules: overflow gives `inf` and invalid operations give `NaN`. They never trap.
 
 ### Characters and strings

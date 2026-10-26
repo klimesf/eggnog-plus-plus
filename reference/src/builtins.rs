@@ -340,6 +340,34 @@ pub fn call_global(it: &mut Interp, name: &str, a: Args, span: Span) -> Result<V
             let o = x.compare(&y).ok_or_else(|| Error::runtime(format!("can't compare {} with {}", describe(&x), describe(&y)), span))?;
             Ok(if (name == "min") == o.is_le() { x } else { y })
         }
+        "pow" => {
+            a.check(2, &["mod"], name, span)?;
+            let base = int_arg(&a.req(0, "base", name, span)?, "pow's base", span)?;
+            let exp = int_arg(&a.req(1, "exp", name, span)?, "pow's exponent", span)?;
+            if exp < 0 {
+                return Err(Error::runtime(format!("pow's exponent can't be negative, got {exp}"), span));
+            }
+            match a.get(usize::MAX, "mod") {
+                None => base.checked_pow(u32::try_from(exp).map_err(|_| overflow(span))?).map(Value::Int).ok_or_else(|| overflow(span)),
+                Some(m) => {
+                    let m = int_arg(m, "pow's mod", span)?;
+                    if m <= 0 {
+                        return Err(Error::runtime(format!("pow's mod must be positive, got {m}"), span));
+                    }
+                    // Square-and-multiply in 128 bits, so a modulus up to 2^63 never overflows.
+                    let m = m as i128;
+                    let (mut result, mut b, mut e) = (1 % m, (base as i128).rem_euclid(m), exp);
+                    while e > 0 {
+                        if e & 1 == 1 {
+                            result = result * b % m;
+                        }
+                        b = b * b % m;
+                        e >>= 1;
+                    }
+                    Ok(Value::Int(result as i64))
+                }
+            }
+        }
         "abs" => {
             let n = int_arg(&a.req(0, "n", name, span)?, "abs's argument", span)?;
             n.checked_abs().map(Value::Int).ok_or_else(|| overflow(span))
