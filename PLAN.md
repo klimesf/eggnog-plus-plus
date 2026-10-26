@@ -54,7 +54,6 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 - **Lambdas:** multi-line lambda bodies (indentation inside parentheses).
 - **Grid:** rotate/flip names; the `neighbors4/8` helper set isn't final. Puzzles that list "x,y" coordinates (2024 d18) must swap them to `(row, col)`.
 - **`test` syntax details.**
-- **Program structure:** if copying shared code between `part1.egg` and `part2.egg` gets cumbersome, consider Claude's alternative of `part1:` / `part2:` blocks after a shared prelude.
 
 ## Declined for now
 
@@ -66,6 +65,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 - **Structs:** a struct holding only constants is a named tuple, and tuple destructuring names the fields where they're used: `for (i, (operation, div, if_true, if_false)) in monkeys.enumerate():` (2022 d11, with the changing `items` in their own list). Revisit when a puzzle has a record with many fields used in many places, or fields that change inside a collection (`monkeys[i].items.push(x)`).
 - **List `+`:** append with `xs.push(x)`, join with `[xs, ys].flat_map(it)` (lazy). `acc = acc + [x]` would invite a quadratic copy each step, and `+` already means element-wise addition on tuples (`pos + Up`). No solution has needed it yet (2022 d10 was better without it). If joins keep coming up, consider `xs += ys` only, as an in-place append. The reference interpreter rejects list `+`.
 - **Tuple indexing** (`pos[0]`, `pos.0`): destructuring names the parts, `let (dr, dc) = head - tail` (2022 d9). A runtime index can't be typed for mixed tuples like `(int, char)`, so `t[i]` would need a literal-only rule different from lists. If it comes back, use Rust's literal-only `t.0`. The reference interpreter rejects `t[i]`.
+- **`part1:` / `part2:` blocks after a shared prelude:** copying the shared code between `part1.egg` and `part2.egg` is fine. Each part stays a complete program that can be read alone, and run time isn't a goal here (deduplicating mattered only for the Rust solutions' whole-year-in-1-second challenge).
 - **`fold`:** `scan(init, f).last()` covers one-expression folds, and a `for` loop with an accumulator covers the rest (lambdas are single expressions). The common folds are already terminals (`sum`, `product`, `min`, `max`, `count`, `all`, `any`), and a folded collection would invite the quadratic copy-per-step.
 - **`|=`:** there is no `|` operator yet, so it would be a one-off or-assign. `x = x or cond` and `if cond: x = true` are as short and short-circuit. Revisit together with bitwise operators on ints (`&`, `|`, `^`, `<<`, `>>`), which would bring `|=` along like `+=`.
 - **`unique()`:** `xs.to_set().len() == n` already tests for distinct elements, and a lazy `unique` would allocate a hidden set.
