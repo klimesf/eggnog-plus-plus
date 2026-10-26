@@ -1,0 +1,23 @@
+fun apply_map(ranges: [(int, int)], map: string) -> [(int, int)]:
+  let next = []
+  for (start, end) in ranges:
+    for [destination, source, length] in map.ints().chunks(3).to_sorted(by = [_, source, _] => source):
+      let from = max(start, source)
+      let to = min(end, source + length)
+      if from >= to: continue
+      if start < from: next.push((start, from)) # gap before this map stays unchanged
+      next.push((destination + from - source, destination + to - source))
+      start = to
+    if start < end: next.push((start, end)) # gap after all maps stays unchanged
+  next
+      
+let (seeds, maps) = input.split_once("\n\n")
+maps.split("\n\n")
+  .scan(seeds.ints().chunks(2).map([start, length] => (start, start + length)).to_list(),
+    (acc, map) => apply_map(acc, map))
+  .last()
+  .map((start, _) => start)
+  .min()
+
+test file("test.txt") == 46
+test file("input.txt") == 46294175

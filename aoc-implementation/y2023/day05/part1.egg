@@ -1,0 +1,15 @@
+fun correspond(num: int, map: string) -> int:
+  for [destination, source, length] in map.ints().chunks(3):
+    if num in source..source + length:
+      return destination + num - source
+  num # no matching range
+
+let (seeds, maps) = input.split_once("\n\n")
+maps.split("\n\n")
+  .scan(seeds.ints().to_list(),
+    (nums, map) => nums.map(correspond(it, map)).to_list())
+  .last()
+  .min()
+
+test file("test.txt") == 35
+test file("input.txt") == 484023871
