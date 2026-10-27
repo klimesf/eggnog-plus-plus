@@ -1,0 +1,22 @@
+fun extrapolate(history: [int]) -> int:
+  let diffs = [history]
+  while diffs.last().any(it != 0):
+    diffs.push(diffs.last()
+      .windows(2)
+      .map([a, b] => b - a)
+      .to_list())
+  diffs.rev().map(it.first())
+    .scan(0, (acc, x) => x - acc)
+    .last()
+
+input.lines()
+  .map(it.ints().to_list())
+  .map(extrapolate(it))
+  .sum()
+
+test """
+0 3 6 9 12 15
+1 3 6 10 15 21
+10 13 16 21 30 45
+""" == 2
+test file("input.txt") == 884
