@@ -1,0 +1,32 @@
+let (instructions, network) = input.split_once("\n\n")
+
+let graph = network.lines()
+  .map((it[0..3], (it[7..10], it[12..15])))
+  .to_map()
+
+fun steps(start: string) -> int:
+  let pos = start
+  for step in 0..:
+    if pos[2] == 'Z': return step
+    let (left, right) = graph[pos]
+    pos = if instructions[step % instructions.len()] == 'L' then left else right
+
+network.lines()
+  .map(it[0..3])
+  .filter(it[2] == 'A')
+  .scan(1, (ans, start) => lcm(ans, steps(start)))
+  .last()
+
+test """
+LR
+
+11A = (11B, XXX)
+11B = (XXX, 11Z)
+11Z = (11B, XXX)
+22A = (22B, XXX)
+22B = (22C, 22C)
+22C = (22Z, 22Z)
+22Z = (22B, 22B)
+XXX = (XXX, XXX)
+""" == 6
+test file("input.txt") == 21083806112641

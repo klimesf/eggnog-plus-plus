@@ -1,0 +1,20 @@
+let (instructions, network) = input.split_once("\n\n")
+
+let graph = network.lines()
+  .map((it[0..3], (it[7..10], it[12..15])))
+  .to_map()
+
+let pos = "AAA"
+for step in 0..:
+  if pos == "ZZZ": return step
+  let (left, right) = graph[pos]
+  pos = if instructions[step % instructions.len()] == 'L' then left else right
+
+test """
+LLR
+
+AAA = (BBB, BBB)
+BBB = (AAA, ZZZ)
+ZZZ = (ZZZ, ZZZ)
+""" == 6
+test file("input.txt") == 21389
