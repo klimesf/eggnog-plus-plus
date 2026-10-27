@@ -1,0 +1,23 @@
+fun strength(cards: string) -> [int]:
+  let labels = Map(default = 0)
+  for c in cards.chars(): labels[c] += 1
+  labels.values().to_sorted(desc = true)
+
+fun score(hand: string) -> ([int], [int]):
+  let (cards, _) = hand.split_once(" ")
+  (strength(cards), cards.chars().map(card => "23456789TJQKA".chars().position(it == card)).to_list())
+
+input.lines()
+  .to_sorted(by = score(it))
+  .enumerate(1)
+  .map((rank, hand) => rank * hand.ints().last())
+  .sum()
+
+test """
+32T3K 765
+T55J5 684
+KK677 28
+KTJJT 220
+QQQJA 483
+""" == 6440
+test file("input.txt") == 254024898
