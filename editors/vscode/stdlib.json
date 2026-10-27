@@ -94,7 +94,7 @@
     { "name": "to_string", "on": "chain", "sig": "to_string(sep = \"\")", "doc": "Joins chars or strings: `rows.to_string(sep = \"\\n\")`." },
     { "name": "chunks", "on": "chain", "sig": "chunks(n)", "doc": "Lazy: lists of `n` elements, one group after another (lines 1–3, then 4–6). The last list may be shorter." },
     { "name": "windows", "on": "chain", "sig": "windows(n)", "doc": "Lazy: every run of `n` consecutive elements, overlapping (`[1,2,3,4].windows(3)` → `[1,2,3], [2,3,4]`)." },
-    { "name": "intersection", "on": "chain", "sig": "intersection(b)", "doc": "Lazy: the elements that are also `in b` (a string, list or Set), keeping order and duplicates. `a.intersection(b).intersection(c).first()`." },
+    { "name": "intersection", "on": "chain", "sig": "intersection(b)", "doc": "Lazy: the elements that are also `in b` (a string, list or Set), keeping order and duplicates. `a.chars().intersection(b).intersection(c).first()`." },
     { "name": "to_sorted", "on": "chain", "sig": "to_sorted(by = f?, desc = false)", "doc": "A new sorted list. `by` gives the key; stable. Tuples, lists and strings compare element by element." }
   ]
 }

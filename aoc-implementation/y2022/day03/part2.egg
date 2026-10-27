@@ -3,7 +3,7 @@ fun priority(c: char) -> int:
 
 input.lines()
   .chunks(3)
-  .map([a, b, c] => a.intersection(b).intersection(c).first())
+  .map([a, b, c] => a.chars().intersection(b).intersection(c).first())
   .map(priority(it))
   .sum()
 

@@ -654,6 +654,12 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
             | "max" | "first" | "last" | "find" | "find_last" | "position" | "to_list" | "to_set" | "to_map" | "to_string"
             | "to_sorted" | "is_empty" | "chunks" | "windows" | "intersection" | "zip"
     ) {
+        if matches!(recv, Value::Str(_)) && !matches!(name, "count" | "rev") {
+            return Err(Error::runtime(
+                format!("strings have no chain method `{name}`; go through the chars: `s.chars().{name}(…)`"),
+                span,
+            ));
+        }
         let chain = to_chain(&recv, span)?;
         return chain_method(it, &chain, name, a, span);
     }

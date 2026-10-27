@@ -1,0 +1,1 @@
+error: strings have no chain method `map`; go through the chars: `s.chars().map(…)`

@@ -1,0 +1,1 @@
+("abc".chars().map(it).to_list(), "aab".count('a'), "abc".rev().to_string())

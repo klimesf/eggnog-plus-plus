@@ -44,6 +44,7 @@ Types appear only after `:` in a parameter and after `->`, so `[int]` never clas
 - `n.to_string()`: an int's decimal text (allocates, hence `to_`).
 - `c.is_digit()` is true for `'0'`…`'9'`, and `c.is_letter()` for `'a'`…`'z'` and `'A'`…`'Z'`. `c.digit()` turns `'7'` into `7` and traps on any other char.
 - Strings can be iterated directly (`for c in s:`). `s.chars()` is the same as a lazy chain, and `s.count(c)` counts occurrences of a char.
+- Chain methods (`map`, `filter`, `any`, `intersection`, …) need `s.chars()` first: `hand.chars().map(strength)`. Only `count` and `rev` work on a string directly. This keeps string methods and chain methods apart, so a name never means both. A string can still be the argument where a chain method takes a sequence: `a.chars().intersection(b)`, `xs.zip(s)`.
 - `c.dir()` maps an arrow (`^ > v <`) or a letter (`U R D L`) to `Up`/`Right`/`Down`/`Left`, and traps on any other char.
 - A string is a sequence of bytes, so indexing it (`s[i]`) is O(1) and returns a `char`.
 
@@ -160,7 +161,7 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 - `take(n)` / `skip(n)` are lazy steps: the first `n` elements / everything after the first `n`. `take` stops pulling as soon as it has `n`, so `(0..).take(3)` ends.
 - `chunks(n)` groups the elements into lists of `n`, one after the other: `lines.chunks(3)` gives lines 1–3, then 4–6. The last list is shorter if the elements don't divide evenly. Lazy.
 - `windows(n)` gives every run of `n` consecutive elements as a list, overlapping: `[1, 2, 3, 4].windows(3)` gives `[1, 2, 3], [2, 3, 4]`. Nothing if there are fewer than `n`. Lazy.
-- `a.intersection(b)` keeps the elements of `a` that are `in b`. It's a lazy step (a noun, so it doesn't allocate): the order and duplicates of `a` are kept, and `.to_set()` makes a set of it. `b` is a string, list or `Set`. The cost is |a| × (cost of `in b`): O(|a|) for a Set, O(|a| · |b|) for a list. For a string, the compiler can first mark `b`'s chars in a 256-entry table on the stack, giving O(|a| + |b|). Typical use: `a.intersection(b).intersection(c).first()` for the one item three strings share.
+- `a.intersection(b)` keeps the elements of `a` that are `in b`. It's a lazy step (a noun, so it doesn't allocate): the order and duplicates of `a` are kept, and `.to_set()` makes a set of it. `b` is a string, list or `Set`. The cost is |a| × (cost of `in b`): O(|a|) for a Set, O(|a| · |b|) for a list. For a string, the compiler can first mark `b`'s chars in a 256-entry table on the stack, giving O(|a| + |b|). Typical use: `a.chars().intersection(b).intersection(c).first()` for the one char three strings share.
 - `to_sorted(by = f, desc = false)` returns a new sorted list (it allocates, hence `to_`). `by` gives the sort key, and `desc = true` sorts largest first. The sort is stable. Tuples, lists and strings compare element by element.
 
 ## Not included (for now)

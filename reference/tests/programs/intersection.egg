@@ -2,7 +2,7 @@ fun priority(c: char) -> int:
   if c >= 'a' then c - 'a' + 1 else c - 'A' + 27
 
 # lazy: keeps the receiver's order and duplicates
-let s = "abcda".intersection("xcay").to_string()
+let s = "abcda".chars().intersection("xcay").to_string()
 let l = [1, 2, 3, 2].intersection([2, 3].to_set()).to_list()
-let common = "vJrw".intersection("Jx").intersection("aJ").first()
+let common = "vJrw".chars().intersection("Jx").intersection("aJ").first()
 (s, l, priority(common), priority('p'))
