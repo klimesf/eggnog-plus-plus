@@ -24,7 +24,7 @@ Types appear only after `:` in a parameter and after `->`, so `[int]` never clas
 - `int` is a signed 64-bit integer and `float` is a 64-bit IEEE float. There are no other numeric types for now.
 - There are no implicit numeric conversions. Mixing types needs an explicit `as` (`x as float`). This keeps it cheap to add `i128` (or `u64`, `i32`) later, when a puzzle needs it.
 - **Integer overflow always traps**, in every build. That covers `+`, `-`, `*`, unary `-`, and `int::MIN / -1`. Division or remainder by zero also traps. A trap prints an error with the source location and exits with a non-zero status. If benchmarks show the checks matter, they can be limited to debug builds later.
-- `min(a, b)` / `max(a, b)` return the smaller/larger of two values of the same type, compared like `<` (ints, chars, tuples): `best = max(best, x)`. For a whole chain use the terminals `xs.min()` / `xs.max()`. `abs(n)` is the absolute value of an `int`, for Manhattan distances: `abs(r1 - r2) + abs(c1 - c2)`. It traps on `int::Min`, like other overflow.
+- `min(a, b)` / `max(a, b)` return the smaller/larger of two values of the same type, compared like `<` (ints, chars, strings, tuples, lists): `best = max(best, x)`. For a whole chain use the terminals `xs.min()` / `xs.max()`. `abs(n)` is the absolute value of an `int`, for Manhattan distances: `abs(r1 - r2) + abs(c1 - c2)`. It traps on `int::Min`, like other overflow.
 - `pow(base, exp)` raises an `int` to a non-negative `int` power: `pow(2, matches - 1)`. A negative exponent traps, and so does overflow. `pow(base, exp, mod = m)` is modular exponentiation: the result is in `0..m`, and it never overflows, even when `m` is close to `int::Max` (the runtime multiplies in 128 bits). There is no `**` operator.
 - Floats follow IEEE rules: overflow gives `inf` and invalid operations give `NaN`. They never trap.
 
@@ -32,6 +32,7 @@ Types appear only after `:` in a parameter and after `->`, so `[int]` never clas
 
 - `char` is a single byte, meant for ASCII. There is no Unicode support.
 - Chars compare by their code (`c >= 'a'`), and `char - char` is the `int` distance between them: `c - 'a' + 1`. That's the only arithmetic on chars: `'a' + 1` is an error.
+- Strings compare character by character, by code, and a prefix is smaller: `"ab" < "b"`, `"ab" < "abc"`.
 - `s.split(sep)`: a lazy chain of the parts of `s` between occurrences of `sep`: `input.split("\n\n")` gives the blank-line-separated sections.
 - `s.int()`: parses the whole string as an integer (optional leading `-`, digits only). Traps on anything else. To pull numbers *out of* text, use `ints()`.
 - `s.split_once(sep)` → a pair `(before, after)` of strings. Traps if `sep` doesn't occur.
@@ -117,6 +118,7 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 
 - `[a, b, c]` literals, and `[]` for an empty list (the element type is inferred).
 - `xs.sort(by = f, desc = false)` sorts a list **in place** (a verb that changes the receiver). Use `to_sorted` on chains or to keep the original.
+- Lists compare element by element, like tuples, and a prefix is smaller: `[1, 2] < [1, 3]`, `[2] > [1, 9]`, `[1] < [1, 0]`. That covers `<`, `min`/`max` and sort keys: `paths.to_sorted(by = (it.len(), it))`. The elements must be comparable themselves (ints, chars, strings, tuples, lists). Bools, sets, maps, queues and grids don't compare.
 - `xs.push(x)`, `xs[i]`, `xs.len()`. `xs.first()` / `xs.last()` are maybe-values, so they trap on an empty list.
 - `[x] * n` is a list of `n` copies of `x`. Under value semantics the copies are independent: `[Stack()] * 3` is three separate stacks (unlike Python's `[[]] * 3`).
 - Slicing: `xs[a..b]`, `xs[a..]`, `xs[..b]` → a new list (a copy).
@@ -159,7 +161,7 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 - `chunks(n)` groups the elements into lists of `n`, one after the other: `lines.chunks(3)` gives lines 1–3, then 4–6. The last list is shorter if the elements don't divide evenly. Lazy.
 - `windows(n)` gives every run of `n` consecutive elements as a list, overlapping: `[1, 2, 3, 4].windows(3)` gives `[1, 2, 3], [2, 3, 4]`. Nothing if there are fewer than `n`. Lazy.
 - `a.intersection(b)` keeps the elements of `a` that are `in b`. It's a lazy step (a noun, so it doesn't allocate): the order and duplicates of `a` are kept, and `.to_set()` makes a set of it. `b` is a string, list or `Set`. The cost is |a| × (cost of `in b`): O(|a|) for a Set, O(|a| · |b|) for a list. For a string, the compiler can first mark `b`'s chars in a 256-entry table on the stack, giving O(|a| + |b|). Typical use: `a.intersection(b).intersection(c).first()` for the one item three strings share.
-- `to_sorted(by = f, desc = false)` returns a new sorted list (it allocates, hence `to_`). `by` gives the sort key, and `desc = true` sorts largest first. The sort is stable. Tuples compare element by element.
+- `to_sorted(by = f, desc = false)` returns a new sorted list (it allocates, hence `to_`). `by` gives the sort key, and `desc = true` sorts largest first. The sort is stable. Tuples, lists and strings compare element by element.
 
 ## Not included (for now)
 

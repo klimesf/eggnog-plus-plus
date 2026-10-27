@@ -204,7 +204,6 @@ impl Value {
         match (self, other) {
             (Value::Int(a), Value::Int(b)) => Some(a.cmp(b)),
             (Value::Char(a), Value::Char(b)) => Some(a.cmp(b)),
-            (Value::Bool(a), Value::Bool(b)) => Some(a.cmp(b)),
             (Value::Str(a), Value::Str(b)) => Some(a.cmp(b)),
             (Value::Tuple(a), Value::Tuple(b)) | (Value::List(a), Value::List(b)) => {
                 for (x, y) in a.iter().zip(b.iter()) {

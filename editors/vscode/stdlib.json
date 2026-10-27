@@ -14,8 +14,8 @@
   "functions": [
     { "name": "panic", "sig": "panic(message)", "doc": "Stops the program with an error message." },
     { "name": "print", "sig": "print(values…)", "doc": "Prints to stderr, for debugging. *(reference interpreter extra)*" },
-    { "name": "min", "sig": "min(a, b)", "doc": "The smaller of two values of the same type (ints, chars, tuples…)." },
-    { "name": "max", "sig": "max(a, b)", "doc": "The larger of two values of the same type (ints, chars, tuples…): `best = max(best, x)`." },
+    { "name": "min", "sig": "min(a, b)", "doc": "The smaller of two values of the same type (ints, chars, strings, tuples, lists)." },
+    { "name": "max", "sig": "max(a, b)", "doc": "The larger of two values of the same type (ints, chars, strings, tuples, lists): `best = max(best, x)`." },
     { "name": "abs", "sig": "abs(n: int) -> int", "doc": "Absolute value: `abs(r1 - r2) + abs(c1 - c2)`. Traps on `int::Min`." },
     { "name": "pow", "sig": "pow(base: int, exp: int, mod = m?) -> int", "doc": "`base` to the power `exp` (not negative); traps on overflow. With `mod = m`: modular exponentiation, result in `0..m`, never overflows." },
     { "name": "Set", "sig": "Set(first?)", "doc": "A new set, empty or with one element. From a collection: `xs.to_set()`." },
@@ -95,6 +95,6 @@
     { "name": "chunks", "on": "chain", "sig": "chunks(n)", "doc": "Lazy: lists of `n` elements, one group after another (lines 1–3, then 4–6). The last list may be shorter." },
     { "name": "windows", "on": "chain", "sig": "windows(n)", "doc": "Lazy: every run of `n` consecutive elements, overlapping (`[1,2,3,4].windows(3)` → `[1,2,3], [2,3,4]`)." },
     { "name": "intersection", "on": "chain", "sig": "intersection(b)", "doc": "Lazy: the elements that are also `in b` (a string, list or Set), keeping order and duplicates. `a.intersection(b).intersection(c).first()`." },
-    { "name": "to_sorted", "on": "chain", "sig": "to_sorted(by = f?, desc = false)", "doc": "A new sorted list. `by` gives the key; stable." }
+    { "name": "to_sorted", "on": "chain", "sig": "to_sorted(by = f?, desc = false)", "doc": "A new sorted list. `by` gives the key; stable. Tuples, lists and strings compare element by element." }
   ]
 }
