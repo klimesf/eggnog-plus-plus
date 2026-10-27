@@ -372,6 +372,24 @@ pub fn call_global(it: &mut Interp, name: &str, a: Args, span: Span) -> Result<V
             let n = int_arg(&a.req(0, "n", name, span)?, "abs's argument", span)?;
             n.checked_abs().map(Value::Int).ok_or_else(|| overflow(span))
         }
+        "gcd" | "lcm" => {
+            a.check(2, &[], name, span)?;
+            let x = int_arg(&a.req(0, "a", name, span)?, &format!("{name}'s first argument"), span)?;
+            let y = int_arg(&a.req(1, "b", name, span)?, &format!("{name}'s second argument"), span)?;
+            // Euclid on magnitudes; only gcd(int::Min, 0) and an lcm past int::Max overflow.
+            let (mut p, mut q) = (x.unsigned_abs(), y.unsigned_abs());
+            while q != 0 {
+                (p, q) = (q, p % q);
+            }
+            let result = if name == "gcd" {
+                Some(p)
+            } else if p == 0 {
+                Some(0)
+            } else {
+                (x.unsigned_abs() / p).checked_mul(y.unsigned_abs())
+            };
+            result.and_then(|r| i64::try_from(r).ok()).map(Value::Int).ok_or_else(|| overflow(span))
+        }
         "Set" => {
             a.check(1, &[], name, span)?;
             let mut s = HashSet::new();

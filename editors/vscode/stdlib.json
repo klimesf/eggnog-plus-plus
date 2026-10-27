@@ -17,6 +17,8 @@
     { "name": "min", "sig": "min(a, b)", "doc": "The smaller of two values of the same type (ints, chars, strings, tuples, lists)." },
     { "name": "max", "sig": "max(a, b)", "doc": "The larger of two values of the same type (ints, chars, strings, tuples, lists): `best = max(best, x)`." },
     { "name": "abs", "sig": "abs(n: int) -> int", "doc": "Absolute value: `abs(r1 - r2) + abs(c1 - c2)`. Traps on `int::Min`." },
+    { "name": "gcd", "sig": "gcd(a: int, b: int) -> int", "doc": "Greatest common divisor, never negative. `gcd(0, 0) == 0`." },
+    { "name": "lcm", "sig": "lcm(a: int, b: int) -> int", "doc": "Least common multiple, never negative: `steps = lcm(steps, cycle)`. Traps on overflow." },
     { "name": "pow", "sig": "pow(base: int, exp: int, mod = m?) -> int", "doc": "`base` to the power `exp` (not negative); traps on overflow. With `mod = m`: modular exponentiation, result in `0..m`, never overflows." },
     { "name": "Set", "sig": "Set(first?)", "doc": "A new set, empty or with one element. From a collection: `xs.to_set()`." },
     { "name": "Map", "sig": "Map(default = v?)", "doc": "A new map. With `default`, missing keys read as `v`, so `counts[k] += 1` works. Without it, a missing key traps." },
