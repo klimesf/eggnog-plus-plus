@@ -652,7 +652,7 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
         name,
         "map" | "filter" | "flat_map" | "enumerate" | "scan" | "take" | "skip" | "rev" | "sum" | "product" | "count" | "any" | "all" | "min"
             | "max" | "first" | "last" | "find" | "find_last" | "position" | "to_list" | "to_set" | "to_map" | "to_string"
-            | "to_sorted" | "is_empty" | "chunks" | "windows" | "intersection"
+            | "to_sorted" | "is_empty" | "chunks" | "windows" | "intersection" | "zip"
     ) {
         let chain = to_chain(&recv, span)?;
         return chain_method(it, &chain, name, a, span);
@@ -840,6 +840,20 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
             }
             let n = n as usize;
             Ok(with_stage(chain, if name == "chunks" { StageOp::Chunks(n) } else { StageOp::Windows(n) }, span))
+        }
+        "zip" => {
+            a.check(1, &["other"], name, span)?;
+            let other = a.req(0, "other", name, span)?;
+            if let Value::Range { end: None, .. } = other {
+                return Err(Error::runtime("zip needs a finite sequence (lengths must match); to number elements use enumerate()", span));
+            }
+            let other = to_chain(&other, span)?;
+            let mut items = Vec::new();
+            it.drive(&other, &mut |_, v| {
+                items.push(v);
+                Ok(true)
+            })?;
+            Ok(with_stage(chain, StageOp::Zip(Rc::new(items)), span))
         }
         "intersection" => {
             a.check(1, &["other"], name, span)?;

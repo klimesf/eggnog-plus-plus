@@ -71,6 +71,7 @@
     { "name": "filter", "on": "chain", "sig": "filter(x => bool)", "doc": "Lazy: keeps the elements where the lambda is true." },
     { "name": "flat_map", "on": "chain", "sig": "flat_map(x => iterable)", "doc": "Lazy: each element becomes several." },
     { "name": "enumerate", "on": "chain", "sig": "enumerate(start = 0)", "doc": "Lazy: pairs `(index, element)`." },
+    { "name": "zip", "on": "chain", "sig": "zip(other) -> chain of (x, y)", "doc": "Pairs elements in order: `a.zip(b).map((x, y) => …)`. Lazy. `other` is a chain, list, range or string. Traps if the lengths differ (use `enumerate()` to number elements)." },
     { "name": "scan", "on": "chain", "sig": "scan(init, (acc, x) => …)", "doc": "Lazy: each running value of the accumulator (`init` itself is not yielded)." },
     { "name": "take", "on": "chain", "sig": "take(n)", "doc": "Lazy: the first `n` elements; stops pulling after them." },
     { "name": "skip", "on": "chain", "sig": "skip(n)", "doc": "Lazy: everything after the first `n`." },

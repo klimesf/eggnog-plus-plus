@@ -665,7 +665,7 @@ impl Interp {
             .map(|s| match s {
                 StageOp::Enumerate(start) => StageState::Count(*start),
                 StageOp::Scan(init, _) => StageState::Acc(init.clone()),
-                StageOp::Take(_) | StageOp::Skip(_) => StageState::Count(0),
+                StageOp::Take(_) | StageOp::Skip(_) | StageOp::Zip(_) => StageState::Count(0),
                 StageOp::Chunks(_) | StageOp::Windows(_) => StageState::Buf(VecDeque::new()),
                 _ => StageState::None,
             })
@@ -684,6 +684,14 @@ impl Interp {
                     if !self.feed(stages, i + 1, chunk, &mut states, span, sink)? {
                         return Ok(false);
                     }
+                }
+            }
+        }
+        // Every element went through: a zip whose other side has some left over had unequal lengths.
+        for (stage, state) in stages.iter().zip(&states) {
+            if let (StageOp::Zip(other), StageState::Count(n)) = (stage, state) {
+                if (*n as usize) < other.len() {
+                    return Err(zip_mismatch(*n as usize, other.len(), span));
                 }
             }
         }
@@ -777,6 +785,15 @@ impl Interp {
                 *n += 1;
                 self.feed(stages, i + 1, Value::tuple(vec![Value::Int(idx), item]), states, span, sink)
             }
+            StageOp::Zip(other) => {
+                let StageState::Count(n) = &mut states[i] else { unreachable!() };
+                let idx = *n as usize;
+                let Some(y) = other.get(idx) else {
+                    return Err(zip_mismatch(idx + 1, other.len(), span));
+                };
+                *n += 1;
+                self.feed(stages, i + 1, Value::tuple(vec![item, y.clone()]), states, span, sink)
+            }
             StageOp::Scan(_, f) => {
                 let StageState::Acc(acc) = &states[i] else { unreachable!() };
                 let acc = acc.clone();
@@ -839,6 +856,11 @@ pub enum StageState {
     Count(i64),
     Acc(Value),
     Buf(VecDeque<Value>),
+}
+
+fn zip_mismatch(left: usize, right: usize, span: Span) -> Error {
+    let left = if left > right { format!("at least {left}") } else { left.to_string() };
+    Error::runtime(format!("zip needs sequences of equal length, got {left} and {right} elements"), span)
 }
 
 const BLOCK_IF_HINT: &str = "; a block `if` is a statement, so write `if c then a else b` to get a value";

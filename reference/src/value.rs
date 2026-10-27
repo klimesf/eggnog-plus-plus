@@ -133,6 +133,8 @@ pub enum StageOp {
     Intersect(Value),
     Chunks(usize),
     Windows(usize),
+    /// Pairs each element with the next one of this list (the collected argument).
+    Zip(Rc<Vec<Value>>),
 }
 
 pub struct Func {

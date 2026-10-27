@@ -152,6 +152,7 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 - `find(pred)` / `find_last(pred)` return the first/last element that matches. Both are maybe-values. `find_last` consumes the whole chain.
 - `position(pred)` returns the 0-based index of the first element that matches. It's a maybe-value: it traps if nothing matches, unless used in a conditional binding.
 - `enumerate(start = 0)` pairs each element with its index: `for (i, c) in input.chars().enumerate(1):`.
+- `a.zip(b)` pairs the elements of `a` and `b` in order, as `(x, y)` tuples: `times.ints().zip(distances.ints()).map((t, d) => ways(t, d))`. It's a lazy step, and `b` is a chain, list, range or string. **The lengths must match:** a mismatch traps, since in AoC it almost always means a parsing bug (like list destructuring). So `b` can't be endless (`0..`); use `enumerate()` to number elements. Only two sequences: there is no `zip3`.
 - `min()` / `max()` (and similar terminals with no answer on an empty chain) return a maybe-value: they trap on an empty chain unless used in a conditional binding.
 - `max(count = n)` / `min(count = n)` return a list of the `n` largest/smallest elements, largest/smallest first. They trap if the chain has fewer than `n`.
 - `take(n)` / `skip(n)` are lazy steps: the first `n` elements / everything after the first `n`. `take` stops pulling as soon as it has `n`, so `(0..).take(3)` ends.
