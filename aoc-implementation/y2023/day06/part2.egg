@@ -1,0 +1,17 @@
+let (time, distance) = input.split_once("\n")
+let time = time.digits().scan(0, (acc, i) => acc * 10 + i).last()
+let dist = distance.digits().scan(0, (acc, i) => acc * 10 + i).last()
+
+let lo = 0
+let hi = time / 2
+while lo < hi: # binary search for start of the interval, it is symmetric around time / 2
+  let mid = (lo + hi) / 2
+  if (time - mid) * mid > dist: hi = mid
+  else: lo = mid + 1
+time - 2 * lo + 1
+
+test """
+Time:      7  15   30
+Distance:  9  40  200
+""" == 71503
+test file("input.txt") == 42948149

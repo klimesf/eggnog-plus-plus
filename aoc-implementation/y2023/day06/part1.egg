@@ -1,0 +1,10 @@
+let (time, distance) = input.split_once("\n")
+time.ints().zip(distance.ints())
+  .map((t, d) => (0..=t).map((t - it) * it).filter(it > d).count())
+  .product()
+
+test """
+Time:      7  15   30
+Distance:  9  40  200
+""" == 288
+test file("input.txt") == 227850
