@@ -1,0 +1,38 @@
+let grid = input.to_char_grid()
+
+let empty_rows = (0..grid.rows())
+  .filter(r => (0..grid.cols()).all(c => grid[(r, c)] == '.'))
+  .to_list()
+
+let empty_cols = (0..grid.cols())
+  .filter(c => (0..grid.rows()).all(r => grid[(r, c)] == '.'))
+  .to_list()
+
+fun expand(star: (int, int)) -> (int, int):
+  let (r, c) = star
+  (r + empty_rows.filter(it < r).count(), c + empty_cols.filter(it < c).count())
+
+let stars = grid.positions()
+  .filter(grid[it] == '#')
+  .map(expand(it))
+  .to_list()
+
+let total = 0
+for (i, (r1, c1)) in stars.enumerate():
+  for (r2, c2) in stars.skip(i + 1):
+    total += abs(r2 - r1) + abs(c2 - c1)
+total
+
+test """
+...#......
+.......#..
+#.........
+..........
+......#...
+.#........
+.........#
+..........
+.......#..
+#...#.....
+""" == 374
+test file("input.txt") == 9233514
