@@ -1,0 +1,46 @@
+let grid = input.to_char_grid()
+let dists = Map(default = int::Max)
+let queue = Queue((grid.find('S'), 0))
+
+fun exits(pos: (int, int)) -> [(int, int)]:
+  match grid[pos]:
+    '-': [Right, Left]
+    '|': [Up, Down]
+    'L': [Up, Right]
+    'J': [Up, Left]
+    'F': [Right, Down]
+    '7': [Down, Left]
+    'S': Dirs4
+    _: []
+
+while (pos, dist) = queue.pop():
+  if dists[pos] <= dist: continue
+  dists[pos] = dist
+  for dir in exits(pos):
+    if pos + dir in grid and -dir in exits(pos + dir):
+      queue.push((pos + dir, dist + 1))
+
+dists.values().max()
+
+test """
+.....
+.S-7.
+.|.|.
+.L-J.
+.....
+""" == 4
+test """
+-L|F7
+7S-7|
+L|7||
+-L-J|
+L|-JF
+""" == 4
+test """
+..F7.
+.FJ|.
+SJ.L7
+|F--J
+LJ...
+""" == 8
+test file("input.txt") == 6820
