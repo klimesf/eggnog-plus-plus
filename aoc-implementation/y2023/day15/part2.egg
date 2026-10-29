@@ -1,0 +1,27 @@
+fun hash(word: string) -> int:
+  word.chars()
+  .scan(0, (current_value, c) => (current_value + c as int) * 17 % 256)
+  .last()
+  
+let boxes = [[]] * 266
+
+for step in input.split(","):
+  if '-' in step:
+    let label = step[0..step.len() - 1]
+    let box = hash(label)
+    boxes[box] = boxes[box].filter((l, _) => l == label).to_list()
+  else:
+    let (label, focal_len) = step.split_once("=")
+    let box = hash(label)
+    let lens = (label, focal_len.int())
+    if i = boxes[box].position((l, _) => l == label):
+      boxes[box][i] = lens
+    else:
+      boxes[box].push(lens)
+
+(0..256)
+  .map((it + 1) * boxes[it].enumerate().map((i, (_, value)) => (i + 1) * value).sum())
+  .sum()
+
+test "rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7" == 145
+test file("input.txt") == 245223
