@@ -1,0 +1,27 @@
+let grid = input.to_char_grid()
+
+for pos in grid.positions():
+  if grid[pos] != 'O': continue
+  while pos + Up in grid and grid[pos + Up] == '.':
+    grid[pos] = '.'
+    grid[pos + Up] = 'O'
+    pos += Up
+
+grid.positions()
+  .filter(grid[it] == 'O')
+  .map((r, _) => grid.rows() - r)
+  .sum()
+
+test """
+O....#....
+O.OO#....#
+.....##...
+OO.#O....O
+.O.....O#.
+O.#..O.#.#
+..O..#O..O
+.......O..
+#....###..
+#OO..#....
+""" == 136
+test file("input.txt") == 109345

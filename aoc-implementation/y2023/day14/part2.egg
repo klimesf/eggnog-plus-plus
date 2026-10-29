@@ -1,0 +1,42 @@
+let grid = input.to_char_grid()
+
+let forward = grid.positions().to_list()
+let backward = forward.rev().to_list()
+
+fun tilt(dir: (int, int)):
+  for pos in if dir in [Up, Left] then forward else backward:
+    if grid[pos] != 'O': continue
+    while pos + dir in grid and grid[pos + dir] == '.':
+      grid[pos] = '.'
+      grid[pos + dir] = 'O'
+      pos += dir
+
+let seen = Map()
+let loads = []
+for i in 0..1000000000:
+  if grid in seen:
+    let start = seen[grid]
+    let period = i - start
+    return loads[start + (1000000000 - start) % period]
+
+  seen[grid] = i
+  loads.push(grid.positions()
+    .filter(grid[it] == 'O')
+    .map((r, _) => grid.rows() - r)
+    .sum())
+
+  for dir in [Up, Left, Down, Right]: tilt(dir)
+
+test """
+O....#....
+O.OO#....#
+.....##...
+OO.#O....O
+.O.....O#.
+O.#..O.#.#
+..O..#O..O
+.......O..
+#....###..
+#OO..#....
+""" == 64
+test file("input.txt") == 112452
