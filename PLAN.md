@@ -33,7 +33,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 ## Status
 
-- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d12, 2023 d1–d8 (44 part files). Recent additions driven by these: list/string comparison, strings need `.chars()` for chain methods, `gcd`/`lcm` (2023 d8; also 2019 d10/d12, 2022 d21, 2023 d20). Suggested next: 2023 d9, 2023 d14, 2025 d11 (a `memo fun` with its own cache per call).
+- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d12, 2023 d1–d11, d12 and d14 part 1 (53 part files). Recent additions driven by these: list/string comparison, strings need `.chars()` for chain methods, `gcd`/`lcm` (2023 d8; also 2019 d10/d12, 2022 d21, 2023 d20). Suggested next: 2023 d12 and d14 part 2, 2025 d11 (a `memo fun` with its own cache per call).
 - **Step 2:** Filip has started (`interpreter/`, see its `GUIDE.md` for the 11-slice roadmap). The lexer, parser and evaluator still have `todo!()`s.
 - Toolchain: rustc/cargo 1.99.1, Xcode installed, arm64.
 
@@ -69,3 +69,4 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 - **`fold`:** `scan(init, f).last()` covers one-expression folds, and a `for` loop with an accumulator covers the rest (lambdas are single expressions). The common folds are already terminals (`sum`, `product`, `min`, `max`, `count`, `all`, `any`), and a folded collection would invite the quadratic copy-per-step.
 - **`|=`:** there is no `|` operator yet, so it would be a one-off or-assign. `x = x or cond` and `if cond: x = true` are as short and short-circuit. Revisit together with bitwise operators on ints (`&`, `|`, `^`, `<<`, `>>`), which would bring `|=` along like `+=`.
 - **`unique()`:** `xs.to_set().len() == n` already tests for distinct elements, and a lazy `unique` would allocate a hidden set.
+- **`swap`:** a free `swap(&a, &b)` would need `inout` references to cells inside a collection, and two of them into the same grid alias each other. If it comes back, make it a method like Rust's: `grid.swap(p, q)`, `xs.swap(i, j)`. 2023 d14 didn't need it: moving a rock one step at a time is `grid[pos] = '.'` and `grid[pos + Up] = 'O'`, which says what happens and can't go wrong in either order, so `swap` would only save one line. In Filip's Rust solutions `.swap(` appears only in 2017 d10 and d16, both list swaps by index. Revisit when puzzles keep swapping cells that aren't "something into an empty cell".
