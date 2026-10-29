@@ -33,7 +33,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 ## Status
 
-- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d12, 2023 d1–d11, d12 and d14 part 1 (53 part files). Recent additions driven by these: list/string comparison, strings need `.chars()` for chain methods, `gcd`/`lcm` (2023 d8; also 2019 d10/d12, 2022 d21, 2023 d20). Suggested next: 2023 d12 and d14 part 2, 2025 d11 (a `memo fun` with its own cache per call).
+- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d12, 2023 d1–d11, d12 and d14 part 1 (53 part files). Recent additions driven by these: list/string comparison, strings need `.chars()` for chain methods, `gcd`/`lcm` (2023 d8; also 2019 d10/d12, 2022 d21, 2023 d20). `as` between `char` and `int` (2023 d15; `as char` in Filip's Rust for 2015 d11, 2016 d4, 2018 d5, 2019 d18 and intcode ASCII output); the reference interpreter now parses `as`, but still has no floats. Suggested next: 2023 d12 and d14 part 2, 2025 d11 (a `memo fun` with its own cache per call).
 - **Step 2:** Filip has started (`interpreter/`, see its `GUIDE.md` for the 11-slice roadmap). The lexer, parser and evaluator still have `todo!()`s.
 - Toolchain: rustc/cargo 1.99.1, Xcode installed, arm64.
 

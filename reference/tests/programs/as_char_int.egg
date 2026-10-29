@@ -1,0 +1,6 @@
+let codes = "aA0~".chars().map(it as int).to_list()
+let shifted = "hal".chars().map((it as int + 1) as char).to_string()
+let alphabet = (0..26).map(('a' as int + it) as char).to_string()
+# `as` binds tighter than `*` and `+`
+let tight = 'a' as int * 2 + 1
+(codes, shifted, alphabet, 0 as char == '\0', 255 as char as int, tight)

@@ -93,6 +93,8 @@ pub enum ExprKind {
     Tuple(Vec<Expr>),
     List(Vec<Expr>),
     Unary(UnOp, Box<Expr>),
+    /// `x as int`
+    Cast(Box<Expr>, Type),
     Binary(BinOp, Box<Expr>, Box<Expr>),
     And(Box<Expr>, Box<Expr>),
     Or(Box<Expr>, Box<Expr>),

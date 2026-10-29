@@ -381,6 +381,10 @@ impl Interp {
                 let v = self.eval(x)?;
                 builtins::unary(*op, v, span)?
             }
+            ExprKind::Cast(x, ty) => {
+                let v = self.eval(x)?;
+                builtins::cast(v, ty, span)?
+            }
             ExprKind::Binary(op, l, r) => {
                 let a = self.eval(l)?;
                 let b = self.eval(r)?;

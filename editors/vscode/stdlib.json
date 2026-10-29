@@ -1,5 +1,5 @@
 {
-  "keywords": ["let", "fun", "memo", "inout", "if", "then", "else", "while", "for", "in", "match", "return", "break", "continue", "test", "assert", "and", "or", "true", "false", "it"],
+  "keywords": ["let", "fun", "memo", "inout", "if", "then", "as", "else", "while", "for", "in", "match", "return", "break", "continue", "test", "assert", "and", "or", "true", "false", "it"],
   "constants": [
     { "name": "input", "sig": "input: string", "doc": "The puzzle input, with its final newline stripped." },
     { "name": "Up", "sig": "Up = (-1, 0)", "doc": "Direction: one row up. Points are `(row, col)`." },

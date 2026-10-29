@@ -30,7 +30,7 @@ fn uses_it(e: &Expr) -> bool {
         ExprKind::Int(_) | ExprKind::Str(_) | ExprKind::Char(_) | ExprKind::Bool(_) | ExprKind::Path(..) => false,
         ExprKind::Lambda(_) => false,
         ExprKind::Tuple(xs) | ExprKind::List(xs) => xs.iter().any(uses_it),
-        ExprKind::Unary(_, x) | ExprKind::Ref(x) => uses_it(x),
+        ExprKind::Unary(_, x) | ExprKind::Ref(x) | ExprKind::Cast(x, _) => uses_it(x),
         ExprKind::Binary(_, a, b) | ExprKind::And(a, b) | ExprKind::Or(a, b) => uses_it(a) || uses_it(b),
         ExprKind::In { item, coll, .. } => uses_it(item) || uses_it(coll),
         ExprKind::Range { start, end, .. } => start.as_deref().is_some_and(uses_it) || end.as_deref().is_some_and(uses_it),
@@ -638,7 +638,7 @@ impl<'a> Parser<'a> {
     }
 
     fn mul(&mut self) -> Result<Expr> {
-        let mut l = self.unary()?;
+        let mut l = self.cast()?;
         loop {
             let op = match self.peek() {
                 Tok::Star => BinOp::Mul,
@@ -647,9 +647,20 @@ impl<'a> Parser<'a> {
                 _ => return Ok(l),
             };
             self.advance();
-            let r = self.unary()?;
+            let r = self.cast()?;
             l = Self::binary(l, op, r);
         }
+    }
+
+    /// `x as int`: tighter than `*`, looser than unary `-`, as in Rust.
+    fn cast(&mut self) -> Result<Expr> {
+        let mut e = self.unary()?;
+        while self.eat(&Tok::As) {
+            let ty = self.ty()?;
+            let span = e.span.to(self.prev_span());
+            e = Expr { kind: ExprKind::Cast(Box::new(e), ty), span };
+        }
+        Ok(e)
     }
 
     fn unary(&mut self) -> Result<Expr> {

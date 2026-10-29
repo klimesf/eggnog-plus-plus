@@ -3,7 +3,7 @@
 use std::collections::{HashSet, VecDeque};
 use std::rc::Rc;
 
-use crate::ast::{BinOp, Name, UnOp};
+use crate::ast::{BinOp, Name, Type, UnOp};
 use crate::error::{Error, Result, Span};
 use crate::interp::{Interp, describe};
 use crate::value::*;
@@ -83,6 +83,19 @@ pub fn unary(op: UnOp, v: Value, span: Span) -> Result<Value> {
         (UnOp::Not, Value::Bool(b)) => Ok(Value::Bool(!b)),
         (UnOp::Neg, v) => Err(Error::runtime(format!("can't negate {}", describe(&v)), span)),
         (UnOp::Not, v) => Err(Error::runtime(format!("`!` needs a bool, found {}", describe(&v)), span)),
+    }
+}
+
+/// `as` converts between `char` and `int` (and, once floats exist, `int` and `float`).
+pub fn cast(v: Value, ty: &Type, span: Span) -> Result<Value> {
+    match (v, ty) {
+        (Value::Char(c), Type::Int) => Ok(Value::Int(c as i64)),
+        (Value::Int(n), Type::Char) => u8::try_from(n)
+            .map(Value::Char)
+            .map_err(|_| Error::runtime(format!("`{n} as char` is outside 0..=255"), span)),
+        (_, Type::Float) => Err(Error::runtime("floats are not supported by the reference interpreter yet", span)),
+        (Value::Str(_), Type::Int) => Err(Error::runtime("can't convert a string to `int` with `as`; use `.int()` to parse it", span)),
+        (v, ty) => Err(Error::runtime(format!("can't convert {} to `{ty}` with `as`", describe(&v)), span)),
     }
 }
 

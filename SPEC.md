@@ -22,7 +22,7 @@ Types appear only after `:` in a parameter and after `->`, so `[int]` never clas
 ### Numbers
 
 - `int` is a signed 64-bit integer and `float` is a 64-bit IEEE float. There are no other numeric types for now.
-- There are no implicit numeric conversions. Mixing types needs an explicit `as` (`x as float`). This keeps it cheap to add `i128` (or `u64`, `i32`) later, when a puzzle needs it.
+- There are no implicit numeric conversions. Mixing types needs an explicit `as` (`x as float`). This keeps it cheap to add `i128` (or `u64`, `i32`) later, when a puzzle needs it. `as` converts between `int` and `float` and between `char` and `int` (see Characters), nothing else: a string is parsed with `.int()`.
 - **Integer overflow always traps**, in every build. That covers `+`, `-`, `*`, unary `-`, and `int::MIN / -1`. Division or remainder by zero also traps. A trap prints an error with the source location and exits with a non-zero status. If benchmarks show the checks matter, they can be limited to debug builds later.
 - `min(a, b)` / `max(a, b)` return the smaller/larger of two values of the same type, compared like `<` (ints, chars, strings, tuples, lists): `best = max(best, x)`. For a whole chain use the terminals `xs.min()` / `xs.max()`. `abs(n)` is the absolute value of an `int`, for Manhattan distances: `abs(r1 - r2) + abs(c1 - c2)`. It traps on `int::Min`, like other overflow.
 - `pow(base, exp)` raises an `int` to a non-negative `int` power: `pow(2, matches - 1)`. A negative exponent traps, and so does overflow. `pow(base, exp, mod = m)` is modular exponentiation: the result is in `0..m`, and it never overflows, even when `m` is close to `int::Max` (the runtime multiplies in 128 bits). There is no `**` operator.
@@ -33,6 +33,7 @@ Types appear only after `:` in a parameter and after `->`, so `[int]` never clas
 
 - `char` is a single byte, meant for ASCII. There is no Unicode support.
 - Chars compare by their code (`c >= 'a'`), and `char - char` is the `int` distance between them: `c - 'a' + 1`. That's the only arithmetic on chars: `'a' + 1` is an error.
+- `c as int` is a char's code, 0–255: `'a' as int == 97`, for hashes over ASCII codes (2023 d15). `n as char` goes back and traps outside 0–255: `(c as int + 1) as char` is the next letter.
 - Strings compare character by character, by code, and a prefix is smaller: `"ab" < "b"`, `"ab" < "abc"`.
 - `s.split(sep)`: a lazy chain of the parts of `s` between occurrences of `sep`: `input.split("\n\n")` gives the blank-line-separated sections.
 - `s.int()`: parses the whole string as an integer (optional leading `-`, digits only). Traps on anything else. To pull numbers *out of* text, use `ints()`.
@@ -262,7 +263,7 @@ Source files are ASCII. Any other byte outside a string literal is a lexer error
 
 ### Operator precedence
 
-From tightest to loosest: unary `-` `!`, then `*` `/` `%`, then `+` `-`, then comparisons and membership (`==` `!=` `<` `<=` `>` `>=` `in` `!in`), then `and`, then `or`. So `pos + Up in grid` means `(pos + Up) in grid`.
+From tightest to loosest: unary `-` `!`, then `as`, then `*` `/` `%`, then `+` `-`, then comparisons and membership (`==` `!=` `<` `<=` `>` `>=` `in` `!in`), then `and`, then `or`. So `pos + Up in grid` means `(pos + Up) in grid`, and `n + c as int * 2` means `n + ((c as int) * 2)`.
 
 ### if / else if / else
 
