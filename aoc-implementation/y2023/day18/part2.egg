@@ -1,0 +1,45 @@
+fun hex2dec(hex: string) -> int:
+  hex.chars().enumerate()
+    .scan(0, (acc, (i, c)) => acc * 16 + "0123456789abcdef".chars().position(it == c))
+    .last()
+
+let vertices = [(0, 0)]
+let boundary = 0
+for line in input.lines():
+  let [_, _, code] = line.split(" ").to_list()
+  let dir = code[7..8]
+  let dist = hex2dec(code[2..7])
+  boundary += dist
+  let step = match dir:
+    "0": Right
+    "1": Down
+    "2": Left
+    "3": Up
+  vertices.push(vertices.last() + dist * step)
+
+# Shoelace formula, using the fact that the last vertex is the start again
+let area = abs(vertices.windows(2)
+  .map([(r1, c1), (r2, c2)] => c1 * r2 - r1 * c2)
+  .sum()) / 2
+
+# Pick's theorem (area = interior + boundary / 2 - 1)
+# We know the area from shoelace formula, so area + boundary / 2 + 1 = interior + boundary)
+area + boundary / 2 + 1
+
+test """
+R 6 (#70c710)
+D 5 (#0dc571)
+L 2 (#5713f0)
+D 2 (#d2c081)
+R 2 (#59c680)
+D 2 (#411b91)
+L 5 (#8ceee2)
+U 2 (#caa173)
+L 1 (#1b58a2)
+U 2 (#caa171)
+R 2 (#7807d2)
+U 3 (#a77fa3)
+L 2 (#015232)
+U 2 (#7a21e3)
+""" == 952408144115
+test file("input.txt") == 87716969654406
