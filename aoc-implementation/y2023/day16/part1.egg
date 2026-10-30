@@ -1,0 +1,32 @@
+let grid = input.to_char_grid()
+let energized = Set()
+let queue = Queue(((0, 0), Right))
+
+fun bounce(pos: (int, int), dir: (int, int)) -> [(int, int)]:
+  let (dr, dc) = dir
+  match grid[pos]:
+    '.': [dir]
+    '-': if dr == 0 then [dir] else [Left, Right]
+    '|': if dc == 0 then [dir] else [Up, Down]
+    '\\': [(dc, dr)]
+    '/': [(-dc, -dr)]
+
+while (pos, dir) = queue.pop():
+  if pos !in grid or !energized.add((pos, dir)): continue
+  for next in bounce(pos, dir): queue.push((pos + next, next))
+
+energized.map((pos, _) => pos).to_set().len()
+
+test """
+.|...\....
+|.-.\.....
+.....|-...
+........|.
+..........
+.........\
+..../.\\..
+.-.-/..|..
+.|....-|.\
+..//.|....
+""" == 46
+test file("input.txt") == 6978

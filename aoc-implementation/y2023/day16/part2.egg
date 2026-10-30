@@ -1,0 +1,38 @@
+let grid = input.to_char_grid()
+
+fun bounce(pos: (int, int), dir: (int, int)) -> [(int, int)]:
+  let (dr, dc) = dir
+  match grid[pos]:
+    '.': [dir]
+    '-': if dr == 0 then [dir] else [Left, Right]
+    '|': if dc == 0 then [dir] else [Up, Down]
+    '\\': [(dc, dr)]
+    '/': [(-dc, -dr)]
+
+fun energize(start: ((int, int), (int, int))) -> int:
+  let energized = Set()
+  let queue = Queue(start)
+  while (pos, dir) = queue.pop():
+    if pos !in grid or !energized.add((pos, dir)): continue
+    for next in bounce(pos, dir): queue.push((pos + next, next))
+  energized.map((pos, _) => pos).to_set().len()
+
+grid.positions()
+  .flat_map(pos => Dirs4.map((pos, it)).to_list())
+  .filter((pos, dir) => pos - dir !in grid) # beams coming from outside of the grid
+  .map(energize(it))
+  .max()
+
+test """
+.|...\....
+|.-.\.....
+.....|-...
+........|.
+..........
+.........\
+..../.\\..
+.-.-/..|..
+.|....-|.\
+..//.|....
+""" == 51
+test file("input.txt") == 7315
