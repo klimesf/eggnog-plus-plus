@@ -1,6 +1,6 @@
 # Writing elegant AoC solutions
 
-A framework drawn from reviews of the solutions in `aoc-implementation/`. Each rule points back to a day where it came up. New rules are added as reviews find them.
+A framework drawn from reviews of the solutions in `aoc-implementation/`. Choosing the right algorithm is in `LEARNINGS.md`. Each rule points back to a day where it came up. New rules are added as reviews find them.
 
 ## 1. Separate deciding from doing
 
@@ -38,6 +38,8 @@ Code should read like the puzzle's sentence.
 
 - "Remove the lens with this label" is `filter(l != label)`, not index slicing (2023 d15).
 - "A rock moves up while the cell above is empty" is the step-by-step `while`, not computing the destination first (2023 d14).
+
+- "Can't reverse, at most 10 straight, at least 4 before turning or stopping" is one condition per rule inside a single move loop, not a separate branch for the first 4 blocks with its own `push` (2023 d17 part 2).
 
 When the code reads like the puzzle text, you can check it against the puzzle line by line.
 
@@ -80,7 +82,7 @@ When it's slow:
 1. Measure where the time goes.
 2. Ask whether the growth is the problem (exponential, 2023 d12) or the constant factor (interpreter speed, 2023 d14).
 
-Only an algorithm change is worth losing readability. A 10% win isn't: in 2023 d14, the sweep tilt was only 7% faster and brought the assignment-order trap back.
+Only an algorithm change is worth losing readability. A 10% win isn't: in 2023 d14, the sweep tilt was only 7% faster and brought the assignment-order trap back. And measure the "algorithm change" too: in 2023 d17, A* added a function and a second number to every queue entry, and ran slower than plain Dijkstra, because its estimate (one heat loss per remaining step) was far below the real cost and pruned almost nothing.
 
 ## 12. Describe a set of cases by its rule, not by listing it
 
