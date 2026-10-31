@@ -8,6 +8,7 @@ When a loop works out what to do and also does it, move the deciding into a smal
 
 - **2023 d10:** `exits(pipe)` returns directions. The search only follows them.
 - **2023 d16:** `bounce(pos, dir)` returns directions, so the loop body is one line.
+- **2023 d18:** the `match` on `"U"`/`"R"`/… returns the direction, and a single `push` uses it, instead of four arms that each push.
 
 A sign you need this: the same action, like `queue.push(...)`, is written in many branches.
 

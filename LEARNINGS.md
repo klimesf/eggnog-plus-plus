@@ -31,6 +31,7 @@ Estimate the work before optimizing: number of states × work per state. 2023 d1
 
 - **Huge repetition counts** (2023 d14, a billion cycles): find where the state repeats and jump ahead with `%`. Save each step's answer as you go, so you don't have to replay the cycles to reach it.
 - **Expanding the input** (2023 d11, a million times wider): don't build the bigger grid; compute each position's offset (the empty rows and columns before it).
+- **Area of a dug-out loop** (2023 d18): don't dig into a grid and flood-fill; the shoelace formula on the corner points gives the area, and Pick's theorem adds the trench itself: `area + perimeter / 2 + 1`. The `+ 1` is the loop's full turn: a closed loop has 4 more outer corners than inner ones, each adding an extra quarter square. With distances in the hundreds of thousands (part 2), it's the only way.
 - **Counting a range that has a boundary** (2023 d6): when the condition holds on one interval, binary search for its edge instead of testing every value.
 
 ## Check whether the input is nicer than the puzzle promises
