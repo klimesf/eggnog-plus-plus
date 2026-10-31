@@ -1,0 +1,27 @@
+fun reflection(notes: string) -> (int, int):
+  let grid = notes.to_char_grid()
+  (0, 0)
+
+input.split("\n\n")
+  .map(reflection(it))
+  .map((r, c) => 100 * r + c)
+  .sum()
+
+test """
+#.##..##.
+..#.##.#.
+##......#
+##......#
+..#.##.#.
+..##..##.
+#.#.##.#.
+
+#...##..#
+#....#..#
+..##..###
+#####.##.
+#####.##.
+..##..###
+#....#..#
+""" == 405
+test file("input.txt") == 28895
