@@ -1,0 +1,38 @@
+fun count_smudges(a: [char], b: [char]) -> int:
+  a.zip(b).count((x, y) => x != y)
+
+fun mirror(lines: [[char]]) -> int:
+  for r in 0..lines.len() - 1:
+    let smudges = (0..=min(r, lines.len() - r - 2))
+      .map(count_smudges(lines[r - it], lines[r + it + 1]))
+      .sum()
+    if smudges == 1: return r + 1
+  0
+
+fun summarize(notes: string) -> int:
+  let rows = notes.lines().map(it.chars().to_list()).to_list()
+  let cols = (0..rows[0].len()).map(c => rows.map(it[c]).to_list()).to_list()
+  100 * mirror(rows) + mirror(cols)
+
+input.split("\n\n")
+  .map(summarize(it))
+  .sum()
+
+test """
+#.##..##.
+..#.##.#.
+##......#
+##......#
+..#.##.#.
+..##..##.
+#.#.##.#.
+
+#...##..#
+#....#..#
+..##..###
+#####.##.
+#####.##.
+..##..###
+#....#..#
+""" == 400
+test file("input.txt") == 31603

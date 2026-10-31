@@ -1,0 +1,33 @@
+fun reflection(lines: [string]) -> int:
+  for i in 0..lines.len() - 1:
+    if (0..=min(i, lines.len() - i - 2)).all(lines[i - it] == lines[i + 1 + it]):
+      return i + 1
+  0
+
+fun summarize(notes: string) -> int:
+  let rows = notes.lines().to_list()
+  let cols = (0..rows[0].len()).map(c => rows.map(it[c]).to_string()).to_list()
+  100 * reflection(rows) + reflection(cols)
+
+input.split("\n\n")
+  .map(summarize(it))
+  .sum()
+
+test """
+#.##..##.
+..#.##.#.
+##......#
+##......#
+..#.##.#.
+..##..##.
+#.#.##.#.
+
+#...##..#
+#....#..#
+..##..###
+#####.##.
+#####.##.
+..##..###
+#....#..#
+""" == 405
+test file("input.txt") == 28895
