@@ -52,7 +52,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 - **`panic` and the never type:** `panic(...)` as the last expression of a function needs a bottom type to type-check.
 - **`match`:** guards and destructuring patterns are not designed.
 - **Lambdas:** multi-line lambda bodies (indentation inside parentheses).
-- **Grid:** rotate/flip names; the `neighbors4/8` helper set isn't final. Puzzles that list "x,y" coordinates (2024 d18) must swap them to `(row, col)`.
+- **Grid:** rotate/flip/transpose names; the `neighbors4/8` helper set isn't final. 2023 d13 would have used a transpose (mirror lines in rows and columns), but building the columns as strings, `(0..w).map(c => rows.map(it[c]).to_string())`, was one line, so it's not a reason to add one yet. Puzzles that list "x,y" coordinates (2024 d18) must swap them to `(row, col)`.
 - **`test` syntax details.**
 
 ## Declined for now

@@ -19,6 +19,7 @@ If you copy a block and change one thing, that one thing is a parameter.
 - **2023 d14:** four tilts became one `tilt(dir)`.
 - **2023 d11:** parts 1 and 2 differ only by a factor (`1` and `999999`).
 - **2023 d10 part 2:** the eight-case `match` collapsed into reusing `exits`.
+- **2023 d13:** the row loop and the column loop differ only by axis. Turning the columns into strings too (`rows.map(it[c]).to_string()`) lets one `mirror(lines)` handle both.
 
 ## 3. Reach for a built-in before writing a loop
 
@@ -30,6 +31,7 @@ Before writing `for`, `break` and a counter, ask whether a chain method already 
 | `enumerate().filter().map().first()` | `.position(...)` (2023 d15) |
 | slicing out one element | `.filter(it != x).to_list()` (2023 d15) |
 | `.to_sorted()` just to make a list | `.to_list()` (2023 d11) |
+| `.filter(p).count()` | `.count(p)` (2023 d13) |
 | a second pass to recompute | save results as you go (2023 d14 `loads`) |
 | `ans = max(ans, …)` in a loop | a function per case, then `.map(f(it)).max()` (2023 d16) |
 
@@ -90,6 +92,12 @@ Only an algorithm change is worth losing readability. A 10% win isn't: in 2023 d
 When cases come in several hand-written groups, look for the one condition they all share and filter for it. The rule covers the corners and edge cases for free, and it can't miss a group.
 
 - **2023 d16 part 2:** four loops listing the start beams for each edge became "every position and direction where the beam enters from outside": `grid.positions().flat_map(pos => Dirs4.map((pos, it))).filter((pos, dir) => pos - dir !in grid)`. Corners get both of their starts without special handling.
+
+## 13. Name the inner idea
+
+When one expression does several jobs at once, pull the innermost job out into a small function with a name. The outer code then reads as a sentence, and the index arithmetic stays in one place.
+
+- **2023 d13 part 2:** pairing mirrored lines, counting differing cells and summing were one nested chain. `count_smudges(a, b)` (`a.zip(b).count((x, y) => x != y)`) took out the counting, so the mirror check became "sum the differences of each mirrored pair".
 
 ## The routine
 
