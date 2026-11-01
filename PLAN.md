@@ -33,7 +33,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 ## Status
 
-- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d12, 2023 d1–d11, d12 and d14 part 1 (53 part files). Recent additions driven by these: list/string comparison, strings need `.chars()` for chain methods, `gcd`/`lcm` (2023 d8; also 2019 d10/d12, 2022 d21, 2023 d20). `as` between `char` and `int` (2023 d15; `as char` in Filip's Rust for 2015 d11, 2016 d4, 2018 d5, 2019 d18 and intcode ASCII output); the reference interpreter now parses `as`, but still has no floats. Suggested next: 2023 d12 and d14 part 2, 2025 d11 (a `memo fun` with its own cache per call).
+- **1b:** done so far: 2015 d1, 2020 d10 (`memo fun`), 2022 d1–d12, 2023 d1–d11, d12 and d14 part 1 (53 part files). Recent additions driven by these: list/string comparison, strings need `.chars()` for chain methods, `gcd`/`lcm` (2023 d8; also 2019 d10/d12, 2022 d21, 2023 d20). `as` between `char` and `int` (2023 d15; `as char` in Filip's Rust for 2015 d11, 2016 d4, 2018 d5, 2019 d18 and intcode ASCII output); the reference interpreter now parses `as`, but still has no floats. `let` may declare an existing name again in the same scope (2023 d19, already used in 2023 d6). Suggested next: 2023 d12 and d14 part 2, 2025 d11 (a `memo fun` with its own cache per call).
 - **Step 2:** Filip has started (`interpreter/`, see its `GUIDE.md` for the 11-slice roadmap). The lexer, parser and evaluator still have `todo!()`s.
 - Toolchain: rustc/cargo 1.99.1, Xcode installed, arm64.
 
@@ -54,6 +54,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 - **Lambdas:** multi-line lambda bodies (indentation inside parentheses).
 - **Grid:** rotate/flip/transpose names; the `neighbors4/8` helper set isn't final. 2023 d13 would have used a transpose (mirror lines in rows and columns), but building the columns as strings, `(0..w).map(c => rows.map(it[c]).to_string())`, was one line, so it's not a reason to add one yet. Puzzles that list "x,y" coordinates (2024 d18) must swap them to `(row, col)`.
 - **`test` syntax details.**
+- **`let` in an inner block with an outer variable's name:** the reference creates a new variable that disappears at the end of the block, so `let total = …` inside a loop silently leaves the outer `total` unchanged. Since all variables are mutable, that's an easy bug. Claude proposes a compile error for it (only same-scope redeclaration allowed); not decided.
 
 ## Declined for now
 

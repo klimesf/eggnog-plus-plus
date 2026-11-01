@@ -253,6 +253,8 @@ memo fun blink(stone: int, blinks: int) -> int:
 
 `let x = ...` declares a variable. `let` is a placeholder keyword and may change. All variables are mutable, with no mutability marker.
 
+`let` can declare a name that already exists in the same scope. The new variable replaces the old one from that line on and can have a different type, as in Rust. Typical use: the raw text and its parsed form share a name, `let (workflows, parts) = input.split_once("\n\n")` followed by `let workflows = workflows.lines()…to_map()`. When the parsing needs a loop, put it in a function: `let workflows = parse_workflows(workflows)`.
+
 ### Blocks
 
 Blocks are defined by indentation, Python style. A line that opens a block ends with `:`. A short body can go on the same line after the colon (`if done: break`).

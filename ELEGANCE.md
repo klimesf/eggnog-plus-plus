@@ -50,6 +50,8 @@ When the code reads like the puzzle text, you can check it against the puzzle li
 
 Use the puzzle's own words: `predict` and `extrapolate` (2023 d9), `current_value`, `boxes` (2023 d15), `bounce` and `energized` (2023 d16). A reader holding the puzzle text then needs no glossary.
 
+When the raw text only exists to be parsed, give the parsed value the same name instead of inventing two: `let (workflows, parts) = input.split_once("\n\n")`, then `let workflows = workflows.lines()…to_map()` (2023 d19; also `time` in 2023 d6).
+
 ## 6. Destructure instead of indexing
 
 `for (i, (r1, c1)) in stars.enumerate():` beats `stars[i]` followed by a `let` (2023 d11). Names at the point of use are clearer than `[0]` and `[i]`, and indexes are where off-by-ones live.

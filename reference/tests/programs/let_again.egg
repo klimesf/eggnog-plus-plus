@@ -1,0 +1,6 @@
+# the raw text and its parsed form share a name, and the type may change
+let (sizes, names) = "3 1 2\nab cd".split_once("\n")
+let sizes = sizes.ints().to_list()
+let names = names.split(" ").to_list()
+let sizes = sizes.len()
+(sizes, names)
