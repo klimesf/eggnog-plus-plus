@@ -1,0 +1,5 @@
+let s = ""
+for c in "abc":
+  s = c + s
+s += '!'
+(s, "ab" + "cd", '<' + "x" + '>')

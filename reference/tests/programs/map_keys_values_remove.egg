@@ -1,0 +1,9 @@
+let m = Map()
+m["a"] = 1
+m["b"] = 2
+m["c"] = 3
+let removed = (m.remove("a"), m.remove("zz"))
+let pairs = []
+for (k, v) in m:
+  pairs.push((k, v))
+(removed, m.keys().to_sorted(), m.values().sum(), pairs.to_sorted(), "a" in m)

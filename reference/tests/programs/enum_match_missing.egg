@@ -1,0 +1,5 @@
+enum Instr:
+  Noop
+  Addx(n: int)
+match Addx(1):
+  Addx(n): n

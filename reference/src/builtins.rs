@@ -106,6 +106,11 @@ fn op_symbol(op: BinOp) -> &'static str {
         BinOp::Mul => "*",
         BinOp::Div => "/",
         BinOp::Rem => "%",
+        BinOp::BitAnd => "&",
+        BinOp::BitOr => "|",
+        BinOp::BitXor => "^",
+        BinOp::Shl => "<<",
+        BinOp::Shr => ">>",
         BinOp::Eq => "==",
         BinOp::Ne => "!=",
         BinOp::Lt => "<",
@@ -132,7 +137,47 @@ pub fn binary(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
             }))
         }
         Add | Sub | Mul | Div | Rem => arith(op, a, b, span),
+        BitAnd | BitOr | BitXor | Shl | Shr => bitwise(op, a, b, span),
     }
+}
+
+/// `& | ^ << >>` on ints. A shift by less than 0 or more than 63 traps, and so
+/// does a `<<` that pushes bits off the end (like other overflow).
+fn bitwise(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
+    use BinOp::*;
+    let (x, y) = match (&a, &b) {
+        (Value::Int(x), Value::Int(y)) => (*x, *y),
+        (Value::Bool(_), Value::Bool(_)) => {
+            let hint = match op {
+                BitAnd => "; for bools use `and`",
+                BitOr => "; for bools use `or`",
+                BitXor => "; for bools use `!=`",
+                _ => "",
+            };
+            return Err(Error::runtime(format!("`{}` works on ints{hint}", op_symbol(op)), span));
+        }
+        _ => return Err(Error::runtime(format!("can't apply `{}` to {} and {}", op_symbol(op), describe(&a), describe(&b)), span)),
+    };
+    let shift = |y: i64| -> Result<u32> {
+        if (0..64).contains(&y) {
+            Ok(y as u32)
+        } else {
+            Err(Error::runtime(format!("can't shift by {y} bits (0..=63)"), span))
+        }
+    };
+    Ok(Value::Int(match op {
+        BitAnd => x & y,
+        BitOr => x | y,
+        BitXor => x ^ y,
+        Shl => {
+            let r = x << shift(y)?;
+            if r >> y != x {
+                return Err(overflow(span));
+            }
+            r
+        }
+        _ => x >> shift(y)?,
+    }))
 }
 
 fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
@@ -147,8 +192,10 @@ fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
                 Add => x.checked_add(y),
                 Sub => x.checked_sub(y),
                 Mul => x.checked_mul(y),
-                Div => x.checked_div(y),
-                _ => x.checked_rem(y),
+                // Rounds down (for a positive divisor), to match `%`: `-7 / 2 == -4`.
+                Div => x.checked_div_euclid(y),
+                // Euclidean remainder: always in 0..|y|, so `(p + d) % n` wraps negative values around.
+                _ => x.checked_rem_euclid(y),
             };
             r.map(Value::Int).ok_or_else(|| overflow(span))
         }
@@ -165,6 +212,10 @@ fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
         (Value::Char(x), Value::Char(y)) if op == Sub => Ok(Value::Int(*x as i64 - *y as i64)),
         (Value::Str(x), Value::Str(y)) if op == Add => Ok(Value::Str(format!("{x}{y}").into())),
         (Value::Str(x), Value::Char(y)) if op == Add => Ok(Value::Str(format!("{x}{}", *y as char).into())),
+        (Value::Char(x), Value::Str(y)) if op == Add => Ok(Value::Str(format!("{}{y}", *x as char).into())),
+        (Value::Str(_), Value::Int(_)) | (Value::Int(_), Value::Str(_)) if op == Add => {
+            Err(Error::runtime("can't add a string and an int; convert the int with `n.to_string()`", span))
+        }
         (Value::List(_), Value::List(_)) if op == Add => {
             Err(Error::runtime("lists can't be joined with `+`; append with `xs.push(x)`, or join with `[xs, ys].flat_map(it)`", span))
         }
@@ -625,6 +676,21 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
                 _ => return Err(Error::runtime("split needs a non-empty separator string", span)),
             };
             return Ok(chain_of(s.split(&*sep).map(|part| Value::Str(part.into())).collect(), span));
+        }
+        (Value::Str(s), "int") if a.get(0, "base").is_some() => {
+            let base = match a.get(0, "base") {
+                Some(Value::Int(b)) if (2..=36).contains(b) => *b as u32,
+                Some(other) => return Err(Error::runtime(format!("base must be an int in 2..=36, got {}", other.repr()), span)),
+                None => unreachable!(),
+            };
+            let digits = s.strip_prefix('-').unwrap_or(s);
+            if digits.is_empty() {
+                return Err(Error::runtime(format!("{} is not a base-{base} integer", recv.repr()), span));
+            }
+            if let Some(c) = digits.chars().find(|c| !c.is_digit(base)) {
+                return Err(Error::runtime(format!("{} is not a base-{base} integer: `{c}` isn't a digit", recv.repr()), span));
+            }
+            return i64::from_str_radix(s, base).map(Value::Int).map_err(|_| Error::runtime(format!("{} doesn't fit in an int", recv.repr()), span));
         }
         (Value::Str(s), "int") => {
             let ok = s.strip_prefix('-').unwrap_or(s);

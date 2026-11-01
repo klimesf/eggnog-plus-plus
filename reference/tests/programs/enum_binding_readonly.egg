@@ -1,0 +1,8 @@
+enum Light:
+  Off
+  On(level: int)
+let l = On(1)
+match l:
+  On(level): level += 1
+  Off: l = On(1)
+l

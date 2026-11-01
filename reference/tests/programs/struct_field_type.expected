@@ -1,0 +1,1 @@
+error: `P` expects `x: int`, got string "a"

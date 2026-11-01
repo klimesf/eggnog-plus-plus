@@ -1,0 +1,2 @@
+# `<<` that pushes bits off the end traps, like other overflow
+1 << 63

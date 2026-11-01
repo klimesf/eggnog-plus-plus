@@ -1,0 +1,3 @@
+struct P:
+  x: int
+P(x = "a")

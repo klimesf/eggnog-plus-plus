@@ -1,0 +1,10 @@
+# a variant's data changes by assigning a whole new value
+enum Light:
+  Off
+  On(level: int)
+let lights = [Off, On(2), Off]
+for i in 0..lights.len():
+  match lights[i]:
+    On(level): lights[i] = if level == 1 then Off else On(level - 1)
+    Off: lights[i] = On(1)
+lights

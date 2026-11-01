@@ -37,6 +37,7 @@ fn uses_it(e: &Expr) -> bool {
         ExprKind::Call { args, .. } => args.iter().any(|a| uses_it(&a.value)),
         ExprKind::Method { recv, args, .. } => uses_it(recv) || args.iter().any(|a| uses_it(&a.value)),
         ExprKind::Index { recv, index } => uses_it(recv) || uses_it(index),
+        ExprKind::Field { recv, .. } => uses_it(recv),
         ExprKind::IfElse(c, a, b) => uses_it(c) || uses_it(a) || uses_it(b),
         ExprKind::Match(x, arms) => {
             uses_it(x) || arms.iter().any(|(p, v)| matches!(p, MatchPat::Value(pv) if uses_it(pv)) || uses_it(v))
@@ -45,10 +46,16 @@ fn uses_it(e: &Expr) -> bool {
 }
 
 pub fn parse(tokens: &[Token]) -> Result<Program> {
-    let mut p = Parser { t: tokens, i: 0 };
+    let mut p = Parser { t: tokens, i: 0, pending_gt: false };
     let mut body = Vec::new();
     while !p.check(&Tok::Eof) {
         if p.eat(&Tok::Newline) {
+            continue;
+        }
+        if matches!(p.peek(), Tok::Struct | Tok::Enum) {
+            let start = p.span();
+            let decl = p.type_decl()?;
+            body.push(Stmt { kind: StmtKind::TypeDecl(Rc::new(decl)), span: start.to(p.prev_span()) });
             continue;
         }
         body.push(p.stmt()?);
@@ -59,6 +66,8 @@ pub fn parse(tokens: &[Token]) -> Result<Program> {
 struct Parser<'a> {
     t: &'a [Token],
     i: usize,
+    /// A `>>` closed two type parameter lists (`Map<int, Set<int>>`); the second `>` is still pending.
+    pending_gt: bool,
 }
 
 fn describe(t: &Tok) -> String {
@@ -189,6 +198,7 @@ impl<'a> Parser<'a> {
                 StmtKind::Match { subject, arms }
             }
             Tok::Fun | Tok::Memo => StmtKind::Fun(Rc::new(self.fun()?)),
+            Tok::Struct | Tok::Enum => return Err(Error::parse("declare structs and enums at the top level, not inside a block", start)),
             Tok::Return => {
                 self.advance();
                 let value = if matches!(self.peek(), Tok::Newline | Tok::Dedent | Tok::Eof) { None } else { Some(self.expr()?) };
@@ -235,12 +245,17 @@ impl<'a> Parser<'a> {
                     Tok::StarEq => Some(Some(BinOp::Mul)),
                     Tok::SlashEq => Some(Some(BinOp::Div)),
                     Tok::PercentEq => Some(Some(BinOp::Rem)),
+                    Tok::AmpEq => Some(Some(BinOp::BitAnd)),
+                    Tok::PipeEq => Some(Some(BinOp::BitOr)),
+                    Tok::CaretEq => Some(Some(BinOp::BitXor)),
+                    Tok::ShlEq => Some(Some(BinOp::Shl)),
+                    Tok::ShrEq => Some(Some(BinOp::Shr)),
                     _ => None,
                 };
                 if let Some(op) = op {
                     self.advance();
-                    if !matches!(target.kind, ExprKind::Var(_) | ExprKind::Index { .. }) {
-                        return Err(Error::parse("can only assign to a variable or an indexed element", target.span));
+                    if !matches!(target.kind, ExprKind::Var(_) | ExprKind::Index { .. } | ExprKind::Field { .. }) {
+                        return Err(Error::parse("can only assign to a variable, an indexed element or a struct field", target.span));
                     }
                     let value = self.expr()?;
                     self.end_stmt()?;
@@ -300,13 +315,112 @@ impl<'a> Parser<'a> {
     }
 
     fn match_pat(&mut self) -> Result<MatchPat> {
-        if let Tok::Ident(n) = self.peek() {
-            if &**n == "_" {
+        if let Tok::Ident(n) = self.peek().clone() {
+            if &*n == "_" {
                 self.advance();
                 return Ok(MatchPat::Wild);
             }
+            if self.peek_at(1) == &Tok::LParen && is_pascal(&n) {
+                let start = self.span();
+                self.advance();
+                self.advance();
+                let mut binds = Vec::new();
+                while !self.eat(&Tok::RParen) {
+                    binds.push(self.pattern()?);
+                    if !self.eat(&Tok::Comma) {
+                        self.expect(&Tok::RParen, "`,` or `)`")?;
+                        break;
+                    }
+                }
+                return Ok(MatchPat::Variant { name: n, binds, span: start.to(self.prev_span()) });
+            }
         }
         Ok(MatchPat::Value(self.or()?))
+    }
+
+    /// `struct Name:` with one `field: type` per line, or `enum Name:` with
+    /// one `Variant` / `Variant(field: type, …)` per line.
+    fn type_decl(&mut self) -> Result<TypeDecl> {
+        let start = self.span();
+        let is_struct = self.advance().tok == Tok::Struct;
+        let kind = if is_struct { "struct" } else { "enum" };
+        let name = self.pascal_name(&format!("a {kind} name"))?;
+        self.expect(&Tok::Colon, "`:`")?;
+        self.expect(&Tok::Newline, &format!("a new line after `{kind} {name}:`"))?;
+        self.expect(&Tok::Indent, if is_struct { "indented fields (`name: type`)" } else { "indented variants" })?;
+        let mut fields = Vec::new();
+        let mut variants: Vec<VariantDecl> = Vec::new();
+        while !self.eat(&Tok::Dedent) {
+            if self.eat(&Tok::Newline) {
+                continue;
+            }
+            if is_struct {
+                fields.push(self.field(&fields)?);
+            } else {
+                let vspan = self.span();
+                let vname = self.pascal_name("a variant name")?;
+                if variants.iter().any(|v| v.name == vname) {
+                    return Err(Error::parse(format!("variant `{vname}` is declared twice"), vspan));
+                }
+                let mut vfields = Vec::new();
+                if self.eat(&Tok::LParen) {
+                    while !self.eat(&Tok::RParen) {
+                        vfields.push(self.field(&vfields)?);
+                        if !self.eat(&Tok::Comma) {
+                            self.expect(&Tok::RParen, "`,` or `)`")?;
+                            break;
+                        }
+                    }
+                    if vfields.is_empty() {
+                        return Err(Error::parse(format!("a variant without fields is written without parentheses: `{vname}`"), vspan));
+                    }
+                }
+                variants.push(VariantDecl { name: vname, fields: vfields, span: vspan.to(self.prev_span()) });
+            }
+            if !self.check(&Tok::Dedent) {
+                self.expect(&Tok::Newline, "a new line")?;
+            }
+        }
+        if is_struct {
+            if fields.is_empty() {
+                return Err(Error::parse(format!("struct `{name}` has no fields"), start));
+            }
+            variants.push(VariantDecl { name: name.clone(), fields, span: start });
+        }
+        if variants.is_empty() {
+            return Err(Error::parse(format!("enum `{name}` has no variants"), start));
+        }
+        Ok(TypeDecl { name, is_struct, variants, span: start })
+    }
+
+    /// `name: type` or `name: type = default`, in a struct or a variant.
+    fn field(&mut self, earlier: &[Param]) -> Result<Param> {
+        let span = self.span();
+        let name = self.ident("a field name")?;
+        if &*name == "it" {
+            return Err(Error::parse(IT_RESERVED, span));
+        }
+        if earlier.iter().any(|p| p.name == name) {
+            return Err(Error::parse(format!("field `{name}` is declared twice"), span));
+        }
+        if !self.eat(&Tok::Colon) {
+            return Err(Error::parse(format!("field `{name}` needs a type (`{name}: int`)"), span));
+        }
+        let ty = self.ty()?;
+        let default = if self.eat(&Tok::Assign) { Some(self.expr()?) } else { None };
+        if default.is_none() && earlier.iter().any(|p| p.default.is_some()) {
+            return Err(Error::parse("fields with defaults must come after those without", span));
+        }
+        Ok(Param { name, ty, inout: false, default })
+    }
+
+    fn pascal_name(&mut self, what: &str) -> Result<Name> {
+        let span = self.span();
+        let name = self.ident(what)?;
+        if !is_pascal(&name) {
+            return Err(Error::parse(format!("struct, enum and variant names use PascalCase: `{name}`"), span));
+        }
+        Ok(name)
     }
 
     fn fun(&mut self) -> Result<FunDecl> {
@@ -368,7 +482,7 @@ impl<'a> Parser<'a> {
         if self.eat(&Tok::Lt) {
             loop {
                 args.push(self.ty()?);
-                if self.eat(&Tok::Gt) {
+                if self.eat_gt() {
                     break;
                 }
                 self.expect(&Tok::Comma, "`,` or `>` in a type")?;
@@ -386,6 +500,7 @@ impl<'a> Parser<'a> {
             "Stack" => (Type::Container("Stack", Vec::new()), 1),
             "MinQueue" => (Type::Container("MinQueue", Vec::new()), 1),
             "Grid" => (Type::Container("Grid", Vec::new()), 1),
+            _ if is_pascal(&name) && args.is_empty() => return Ok(Type::Named(name)),
             _ => {
                 let hint = if &*name == "str" { "; did you mean `string`?" } else { "" };
                 return Err(Error::parse(format!("unknown type `{name}`{hint}"), span));
@@ -403,6 +518,19 @@ impl<'a> Parser<'a> {
             Type::Container(n, _) => Type::Container(n, args),
             t => t,
         })
+    }
+
+    /// The `>` that closes a type parameter list, splitting a `>>` in two.
+    fn eat_gt(&mut self) -> bool {
+        if self.pending_gt {
+            self.pending_gt = false;
+            return true;
+        }
+        if self.eat(&Tok::Shr) {
+            self.pending_gt = true;
+            return true;
+        }
+        self.eat(&Tok::Gt)
     }
 
     fn pattern(&mut self) -> Result<Pattern> {
@@ -608,19 +736,62 @@ impl<'a> Parser<'a> {
 
     fn range(&mut self) -> Result<Expr> {
         let start_span = self.span();
-        let start = if matches!(self.peek(), Tok::DotDot | Tok::DotDotEq) { None } else { Some(self.add()?) };
+        let start = if matches!(self.peek(), Tok::DotDot | Tok::DotDotEq) { None } else { Some(self.bit_or()?) };
         let inclusive = match self.peek() {
             Tok::DotDot => false,
             Tok::DotDotEq => true,
             _ => return Ok(start.unwrap()),
         };
         self.advance();
-        let end = if self.starts_expr() { Some(Box::new(self.add()?)) } else { None };
+        let end = if self.starts_expr() { Some(Box::new(self.bit_or()?)) } else { None };
         if inclusive && end.is_none() {
             return Err(Error::parse("`..=` needs an end", self.span()));
         }
         let span = start_span.to(self.prev_span());
         Ok(Expr { kind: ExprKind::Range { start: start.map(Box::new), end, inclusive }, span })
+    }
+
+    /// Bitwise operators, as in Rust: tighter than comparisons, so
+    /// `n & 1 == 0` is `(n & 1) == 0`. From loosest: `|`, `^`, `&`, `<<` `>>`.
+    fn bit_or(&mut self) -> Result<Expr> {
+        let mut l = self.bit_xor()?;
+        while self.eat(&Tok::Pipe) {
+            let r = self.bit_xor()?;
+            l = Self::binary(l, BinOp::BitOr, r);
+        }
+        Ok(l)
+    }
+
+    fn bit_xor(&mut self) -> Result<Expr> {
+        let mut l = self.bit_and()?;
+        while self.eat(&Tok::Caret) {
+            let r = self.bit_and()?;
+            l = Self::binary(l, BinOp::BitXor, r);
+        }
+        Ok(l)
+    }
+
+    fn bit_and(&mut self) -> Result<Expr> {
+        let mut l = self.shift()?;
+        while self.eat(&Tok::Amp) {
+            let r = self.shift()?;
+            l = Self::binary(l, BinOp::BitAnd, r);
+        }
+        Ok(l)
+    }
+
+    fn shift(&mut self) -> Result<Expr> {
+        let mut l = self.add()?;
+        loop {
+            let op = match self.peek() {
+                Tok::Shl => BinOp::Shl,
+                Tok::Shr => BinOp::Shr,
+                _ => return Ok(l),
+            };
+            self.advance();
+            let r = self.add()?;
+            l = Self::binary(l, op, r);
+        }
     }
 
     fn add(&mut self) -> Result<Expr> {
@@ -686,11 +857,12 @@ impl<'a> Parser<'a> {
         let mut e = self.primary()?;
         loop {
             if self.eat(&Tok::Dot) {
-                let name = self.ident("a method name")?;
-                if !self.check(&Tok::LParen) {
-                    return Err(Error::parse(format!("expected `(` after `.{name}` (there is no field access; methods need parentheses)"), self.span()));
+                let name = self.ident("a method or field name")?;
+                if !self.eat(&Tok::LParen) {
+                    let span = e.span.to(self.prev_span());
+                    e = Expr { kind: ExprKind::Field { recv: Box::new(e), name }, span };
+                    continue;
                 }
-                self.advance();
                 let mut args = self.args()?;
                 if LAMBDA_METHODS.contains(&&*name) {
                     for a in &mut args {
@@ -813,4 +985,9 @@ fn expr_to_pattern(e: Expr) -> Result<Pattern> {
         ExprKind::List(items) => Ok(Pattern::List(items.into_iter().map(expr_to_pattern).collect::<Result<_>>()?)),
         _ => Err(Error::parse("the left side of `=` in a condition must be a name or a destructuring pattern (did you mean `==`?)", e.span)),
     }
+}
+
+/// Struct, enum and variant names start with an uppercase letter.
+fn is_pascal(name: &str) -> bool {
+    name.starts_with(|c: char| c.is_ascii_uppercase())
 }

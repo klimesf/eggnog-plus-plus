@@ -1,0 +1,1 @@
+error: can't add a string and an int; convert the int with `n.to_string()`

@@ -72,7 +72,8 @@ pub fn run_tests(program: &Program, base_dir: &Path) -> Vec<TestResult> {
             StmtKind::TestBlock { body, .. } => {
                 let outcome = (|| {
                     let mut it = Interp::new("", base_dir.to_path_buf());
-                    // Only the functions are defined; the script itself doesn't run.
+                    it.declare_types(program).map_err(TestFailure::Error)?;
+                    // Only the types and functions are defined; the script itself doesn't run.
                     let funs: Vec<&ast::Stmt> = program.body.iter().filter(|s| matches!(s.kind, StmtKind::Fun(_))).collect();
                     for f in funs {
                         it.exec_stmts(std::slice::from_ref(f)).map_err(TestFailure::Error)?;

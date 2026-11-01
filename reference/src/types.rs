@@ -29,6 +29,7 @@ impl fmt::Display for Type {
                 }
                 write!(f, ")")
             }
+            Type::Named(name) => write!(f, "{name}"),
             Type::Container(name, args) => {
                 write!(f, "{name}<")?;
                 for (i, t) in args.iter().enumerate() {
@@ -59,6 +60,7 @@ pub fn fits(v: &Value, t: &Type) -> bool {
         (Value::Stack(s), Type::Container("Stack", a)) => sample(s.last(), &a[0]),
         (Value::MinQueue(q), Type::Container("MinQueue", a)) => sample(q.heap.peek().map(|e| &e.item), &a[0]),
         (Value::Grid(g), Type::Container("Grid", a)) => sample(g.cells.first(), &a[0]),
+        (Value::Record(def, _), Type::Named(name)) => def.decl.name == *name,
         _ => false,
     }
 }

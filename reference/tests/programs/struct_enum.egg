@@ -1,0 +1,37 @@
+struct Monkey:
+  items: [int]
+  operation: string
+  divisor: int
+  inspected: int = 0
+
+enum Instr:
+  Noop
+  Addx(n: int)
+  Jump(offset: int, flag: string)
+
+enum Tree:
+  Leaf(value: int)
+  Node(children: [Tree])
+
+fun total(t: Tree) -> int:
+  match t:
+    Leaf(v): v
+    Node(kids): kids.map(total(it)).sum()
+
+fun step(x: int, i: Instr) -> int:
+  match i:
+    Noop: x
+    Addx(n): x + n
+    Jump(_, _): x
+
+let monkeys = [Monkey([79, 98], "old * 19", divisor = 23), Monkey([54], "old + 6", 19)]
+monkeys[0].items.push(5)
+monkeys[1].inspected += 2
+let m = monkeys[0]
+m.divisor = 1
+let prog = [Noop, Addx(3), Addx(-5), Jump(2, "x")]
+let x = prog.scan(1, (x, i) => step(x, i)).last()
+let tree = Node([Leaf(1), Node([Leaf(2), Leaf(3)]), Node([])])
+let seen = [Addx(1), Noop, Addx(1), Addx(-1)].to_set()
+let sorted = [Addx(2), Noop, Jump(0, "a"), Addx(-1)].to_sorted()
+(monkeys[0].items, monkeys[1].inspected, monkeys[0].divisor, x, total(tree), seen.len(), sorted, Noop == Noop, Addx(1) != Addx(2))

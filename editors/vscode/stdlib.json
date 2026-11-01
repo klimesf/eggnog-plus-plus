@@ -1,5 +1,5 @@
 {
-  "keywords": ["let", "fun", "memo", "inout", "if", "then", "as", "else", "while", "for", "in", "match", "return", "break", "continue", "test", "assert", "and", "or", "true", "false", "it"],
+  "keywords": ["let", "fun", "memo", "inout", "struct", "enum", "if", "then", "as", "else", "while", "for", "in", "match", "return", "break", "continue", "test", "assert", "and", "or", "true", "false", "it"],
   "constants": [
     { "name": "input", "sig": "input: string", "doc": "The puzzle input, with its final newline stripped." },
     { "name": "Up", "sig": "Up = (-1, 0)", "doc": "Direction: one row up. Points are `(row, col)`." },
@@ -36,7 +36,7 @@
     { "name": "chars", "on": "string", "sig": "chars()", "doc": "Lazy chain of the chars. (A string can also be iterated directly.)" },
     { "name": "split", "on": "string", "sig": "split(sep)", "doc": "Lazy chain of the parts between separators. `input.split(\"\\n\\n\")` gives the blank-line sections." },
     { "name": "split_once", "on": "string", "sig": "split_once(sep) -> (string, string)", "doc": "The parts before and after the first `sep`. Traps if there is none." },
-    { "name": "int", "on": "string", "sig": "int() -> int", "doc": "Parses the whole string as an int; traps on anything else. To pull numbers out of text, use `ints()`." },
+    { "name": "int", "on": "string", "sig": "int(base = 10) -> int", "doc": "Parses the whole string as an int; traps on anything else. `base = 16` parses hex, `base = 2` binary (2–36). To pull numbers out of text, use `ints()`." },
     { "name": "starts_with", "on": "string", "sig": "starts_with(prefix, at = 0) -> bool", "doc": "Does `prefix` occur at position `at`?" },
     { "name": "to_char_grid", "on": "string", "sig": "to_char_grid() -> Grid<char>", "doc": "One char per cell. Lines must have equal length." },
     { "name": "to_digit_grid", "on": "string", "sig": "to_digit_grid() -> Grid<int>", "doc": "One digit 0–9 per cell." },
@@ -56,8 +56,8 @@
     { "name": "top", "on": "Stack", "sig": "top()", "doc": "The top element without removing it. **Maybe-value**." },
     { "name": "add", "on": "Set", "sig": "add(x) -> bool", "doc": "Adds `x`; true if it wasn't there yet. `if !seen.add(p): continue`." },
     { "name": "remove", "on": "Set · Map", "sig": "remove(x) -> bool", "doc": "Removes an element / key; true if it was there." },
-    { "name": "keys", "on": "Map", "sig": "keys()", "doc": "Lazy chain of the keys (no defined order). *(reference interpreter extra)*" },
-    { "name": "values", "on": "Map", "sig": "values()", "doc": "Lazy chain of the values (no defined order). *(reference interpreter extra)*" },
+    { "name": "keys", "on": "Map", "sig": "keys()", "doc": "Lazy chain of the keys (unspecified order)." },
+    { "name": "values", "on": "Map", "sig": "values()", "doc": "Lazy chain of the values (unspecified order)." },
     { "name": "sort", "on": "list", "sig": "sort(by = f?, desc = false)", "doc": "Sorts the list **in place**. Use `to_sorted` to get a new list." },
 
     { "name": "rows", "on": "Grid", "sig": "rows() -> int", "doc": "Number of rows." },

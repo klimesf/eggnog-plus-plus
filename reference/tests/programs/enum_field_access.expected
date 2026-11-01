@@ -1,0 +1,1 @@
+error: a variant's fields are read with `match`

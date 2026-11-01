@@ -28,6 +28,8 @@ pub enum StmtKind {
     Continue,
     Return(Option<Expr>),
     Fun(Rc<FunDecl>),
+    /// `struct` / `enum`, top level only; declared before the script runs.
+    TypeDecl(Rc<TypeDecl>),
     /// `test <input> == <expected>`
     Test { input: Expr, expected: Expr },
     /// `test "name":` with a block of asserts
@@ -54,6 +56,25 @@ pub enum Pattern {
 pub enum MatchPat {
     Wild,
     Value(Expr),
+    /// `Addx(n):` binds a variant's fields by position.
+    Variant { name: Name, binds: Vec<Pattern>, span: Span },
+}
+
+/// A `struct` (one variant named like the type) or an `enum`.
+#[derive(Debug)]
+pub struct TypeDecl {
+    pub name: Name,
+    pub is_struct: bool,
+    pub variants: Vec<VariantDecl>,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub struct VariantDecl {
+    pub name: Name,
+    /// Fields reuse `Param`: a name, a type and an optional default (never `inout`).
+    pub fields: Vec<Param>,
+    pub span: Span,
 }
 
 #[derive(Debug)]
@@ -103,6 +124,8 @@ pub enum ExprKind {
     Call { name: Name, args: Vec<Arg> },
     Method { recv: Box<Expr>, name: Name, args: Vec<Arg> },
     Index { recv: Box<Expr>, index: Box<Expr> },
+    /// `monkey.items`: a struct field.
+    Field { recv: Box<Expr>, name: Name },
     Lambda(Rc<Lambda>),
     IfElse(Box<Expr>, Box<Expr>, Box<Expr>),
     Match(Box<Expr>, Vec<(MatchPat, Expr)>),
@@ -129,6 +152,11 @@ pub enum BinOp {
     Mul,
     Div,
     Rem,
+    BitAnd,
+    BitOr,
+    BitXor,
+    Shl,
+    Shr,
     Eq,
     Ne,
     Lt,
@@ -156,4 +184,6 @@ pub enum Type {
     Tuple(Vec<Type>),
     /// `Set<T>`, `Map<K, V>`, `Queue<T>`, `Stack<T>`, `MinQueue<T>`, `Grid<T>`
     Container(&'static str, Vec<Type>),
+    /// A user `struct` or `enum`.
+    Named(Name),
 }

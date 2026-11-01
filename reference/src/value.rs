@@ -10,7 +10,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-use crate::ast::{FunDecl, Lambda, Name};
+use crate::ast::{FunDecl, Lambda, Name, TypeDecl, VariantDecl};
 
 pub type Env = Rc<RefCell<Scope>>;
 
@@ -22,6 +22,8 @@ pub struct Scope {
     pub readonly: HashSet<Name>,
     /// The outermost scope of the script, a function call or a lambda.
     pub boundary: bool,
+    /// Names bound by a `match` variant pattern: copies of the fields, read-only.
+    pub bound: HashSet<Name>,
 }
 
 pub fn new_boundary(parent: Option<Env>) -> Env {
@@ -31,7 +33,7 @@ pub fn new_boundary(parent: Option<Env>) -> Env {
 }
 
 pub fn new_scope(parent: Option<Env>) -> Env {
-    Rc::new(RefCell::new(Scope { vars: HashMap::new(), parent, readonly: HashSet::new(), boundary: false }))
+    Rc::new(RefCell::new(Scope { vars: HashMap::new(), parent, readonly: HashSet::new(), boundary: false, bound: HashSet::new() }))
 }
 
 #[derive(Clone)]
@@ -53,6 +55,10 @@ pub enum Value {
     Chain(Rc<ChainV>),
     Func(Rc<Func>),
     Lambda(Rc<LambdaV>),
+    /// A struct value or an enum variant, with its fields in declaration order.
+    Record(Rc<VariantDef>, Rc<Vec<Value>>),
+    /// The constructor of a struct or of a variant with fields: `Monkey`, `Addx`.
+    Ctor(Rc<VariantDef>),
     /// The "no value" result of a maybe-operation (`pop()` on an empty
     /// queue, `find` with no match, …). Only a conditional binding may see it.
     Missing,
@@ -145,6 +151,26 @@ pub enum StageOp {
     Zip(Rc<Vec<Value>>),
 }
 
+/// One variant of a user type (a struct is its only variant).
+pub struct VariantDef {
+    pub decl: Rc<TypeDecl>,
+    pub index: usize,
+}
+
+impl VariantDef {
+    pub fn variant(&self) -> &VariantDecl {
+        &self.decl.variants[self.index]
+    }
+
+    pub fn name(&self) -> &Name {
+        &self.variant().name
+    }
+
+    pub fn same(&self, o: &VariantDef) -> bool {
+        Rc::ptr_eq(&self.decl, &o.decl) && self.index == o.index
+    }
+}
+
 pub struct Func {
     pub decl: Rc<FunDecl>,
     pub env: Env,
@@ -176,6 +202,8 @@ impl Value {
             Value::Chain(_) => "chain",
             Value::Func(_) => "function",
             Value::Lambda(_) => "lambda",
+            Value::Record(def, _) => if def.decl.is_struct { "struct" } else { "enum" },
+            Value::Ctor(_) => "constructor",
             Value::Missing => "missing value",
         }
     }
@@ -222,6 +250,19 @@ impl Value {
                 }
                 Some(a.len().cmp(&b.len()))
             }
+            // Variants in declaration order, then field by field.
+            (Value::Record(da, a), Value::Record(db, b)) if Rc::ptr_eq(&da.decl, &db.decl) => match da.index.cmp(&db.index) {
+                Ordering::Equal => {
+                    for (x, y) in a.iter().zip(b.iter()) {
+                        match x.compare(y)? {
+                            Ordering::Equal => {}
+                            o => return Some(o),
+                        }
+                    }
+                    Some(Ordering::Equal)
+                }
+                o => Some(o),
+            },
             _ => None,
         }
     }
@@ -241,6 +282,7 @@ impl PartialEq for Value {
             (Value::Queue(a), Value::Queue(b)) => a == b,
             (Value::Grid(a), Value::Grid(b)) => a.rows == b.rows && a.cols == b.cols && a.cells == b.cells,
             (Value::Range { start: a, end: b }, Value::Range { start: c, end: d }) => a == c && b == d,
+            (Value::Record(da, a), Value::Record(db, b)) => da.same(db) && a == b,
             _ => false,
         }
     }
@@ -262,6 +304,10 @@ impl Hash for Value {
                 g.rows.hash(h);
                 g.cols.hash(h);
                 g.cells.hash(h);
+            }
+            Value::Record(def, fields) => {
+                def.name().hash(h);
+                fields.hash(h);
             }
             _ => {}
         }
@@ -304,6 +350,15 @@ impl fmt::Display for Value {
             Value::Chain(_) => write!(f, "<chain>"),
             Value::Func(func) => write!(f, "<fun {}>", func.decl.name),
             Value::Lambda(_) => write!(f, "<lambda>"),
+            // Printed the way it's built: `Addx(n = 3)`, `Noop`.
+            Value::Record(def, fields) => {
+                let v = def.variant();
+                if v.fields.is_empty() {
+                    return write!(f, "{}", v.name);
+                }
+                write!(f, "{}({})", v.name, join(v.fields.iter().zip(fields.iter()).map(|(p, x)| format!("{} = {}", p.name, x.repr()))))
+            }
+            Value::Ctor(def) => write!(f, "<constructor {}>", def.name()),
             Value::Missing => write!(f, "<missing>"),
         }
     }

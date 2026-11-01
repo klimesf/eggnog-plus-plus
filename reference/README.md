@@ -27,17 +27,19 @@ trailing newline is stripped, as the spec says.
   against its declared type when the function is called (`types.rs`).
   Containers are checked by kind plus one sample element, so a list with a
   wrong element further in can slip through. Unknown type names (`str`) are
-  parse errors. Types on lambda parameters and `let` are not checked.
+  parse errors. Types on lambda parameters and `let` are not checked. Struct
+  and variant fields are checked when a value is built.
 - **Runtime checks instead of compile-time ones.** Storing a chain, writing to
   a read-only parameter, `&` on a non-`inout` parameter, indexing a tuple,
   joining lists with `+`, using a block `if` as a value, and a `let` that hides
   a variable of an enclosing block are runtime errors (the last only when that
-  `let` runs).
+  `let` runs). A `match` that misses an enum variant fails only when it runs
+  on a value of that enum; a struct or variant name that clashes with a
+  built-in, a function or another variant fails when the program starts.
   The memo rule "don't change a captured variable after the `memo fun` is
   defined" is **not** checked.
 - **No floats** yet.
-- **Extras not in SPEC.md:** `print(…)` (to stderr), `map.keys()`,
-  `map.values()`, iterating a `Map` yields `(key, value)`.
+- **Extras not in SPEC.md:** `print(…)` (to stderr).
 - Iterating a `Set` or `Map` has no defined order.
 
 ## Layout

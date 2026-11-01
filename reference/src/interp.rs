@@ -19,16 +19,26 @@ pub enum Flow {
     Return(Value),
 }
 
-/// An assignable location: a variable followed by zero or more indexes.
+/// An assignable location: a variable followed by zero or more indexes and fields.
 pub struct Place {
     root: Name,
     root_span: Span,
-    keys: Vec<(Value, Span)>,
+    keys: Vec<(Key, Span)>,
 }
+
+enum Key {
+    Index(Value),
+    Field(Name),
+}
+
+/// Names a struct or variant can't take: built-in types and constants.
+const RESERVED_TYPE_NAMES: &[&str] = &["Set", "Map", "Queue", "Stack", "MinQueue", "Grid"];
 
 pub struct Interp {
     pub env: Env,
     pub base_dir: PathBuf,
+    /// Names of the declared structs and enums.
+    type_names: std::collections::HashSet<Name>,
 }
 
 impl Interp {
@@ -37,7 +47,7 @@ impl Interp {
         let globals = builtins::globals();
         let env = new_boundary(Some(globals));
         env.borrow_mut().vars.insert("input".into(), Value::Str(input.into()));
-        Interp { env, base_dir }
+        Interp { env, base_dir, type_names: Default::default() }
     }
 
     pub fn in_env<R>(&mut self, env: Env, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
@@ -49,6 +59,7 @@ impl Interp {
 
     /// Runs a whole program and returns its answer.
     pub fn run(&mut self, program: &Program) -> Result<Value> {
+        self.declare_types(program)?;
         let answer = match self.exec_stmts(&program.body)? {
             Flow::Return(v) | Flow::Normal(Some(v)) => v,
             Flow::Normal(None) => {
@@ -69,6 +80,88 @@ impl Interp {
             return Err(Error::runtime("the program's last expression produced no value", span));
         }
         Ok(answer)
+    }
+
+    /// Types are known everywhere in the file, like in a compiled language.
+    pub fn declare_types(&mut self, program: &Program) -> Result<()> {
+        for s in &program.body {
+            if let StmtKind::TypeDecl(decl) = &s.kind {
+                self.declare_type(decl)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Defines a struct's constructor, or each variant of an enum.
+    fn declare_type(&mut self, decl: &Rc<TypeDecl>) -> Result<()> {
+        let mut names: Vec<(&Name, Span)> = decl.variants.iter().map(|v| (&v.name, v.span)).collect();
+        if !decl.is_struct {
+            names.push((&decl.name, decl.span));
+        }
+        for (name, span) in names {
+            if RESERVED_TYPE_NAMES.contains(&&**name) {
+                return Err(Error::runtime(format!("`{name}` is a built-in type; pick another name"), span));
+            }
+            if let Some(v) = self.lookup(name) {
+                let what = match v {
+                    Value::Record(..) | Value::Ctor(_) => "a struct or variant",
+                    Value::Func(_) => "a function",
+                    _ => "a built-in constant",
+                };
+                return Err(Error::runtime(format!("`{name}` is already {what}; pick another name"), span));
+            }
+            if self.type_names.contains(name) {
+                return Err(Error::runtime(format!("`{name}` is already a type; pick another name"), span));
+            }
+        }
+        if !self.type_names.insert(decl.name.clone()) {
+            return Err(Error::runtime(format!("`{}` is declared twice", decl.name), decl.span));
+        }
+        for (index, v) in decl.variants.iter().enumerate() {
+            let def = Rc::new(VariantDef { decl: decl.clone(), index });
+            let value = if v.fields.is_empty() { Value::Record(def, Rc::new(Vec::new())) } else { Value::Ctor(def) };
+            self.env.borrow_mut().vars.insert(v.name.clone(), value);
+        }
+        Ok(())
+    }
+
+    /// `Monkey(items, "old * 19", divisor = 23)`: arguments bind to fields like
+    /// to a function's parameters.
+    fn construct(&mut self, def: &Rc<VariantDef>, args: &[Arg], span: Span) -> Result<Value> {
+        let v = def.variant();
+        let mut values: Vec<Option<Value>> = vec![None; v.fields.len()];
+        for (k, arg) in args.iter().enumerate() {
+            let idx = match &arg.name {
+                Some(n) => v
+                    .fields
+                    .iter()
+                    .position(|p| &p.name == n)
+                    .ok_or_else(|| Error::runtime(format!("`{}` has no field named `{n}`", v.name), arg.value.span))?,
+                None if k < v.fields.len() => k,
+                None => return Err(Error::runtime(format!("too many fields for `{}`", v.name), arg.value.span)),
+            };
+            if values[idx].is_some() {
+                return Err(Error::runtime(format!("field `{}` given twice", v.fields[idx].name), arg.value.span));
+            }
+            let x = self.eval(&arg.value)?;
+            if let Value::Chain(_) = x {
+                return Err(Error::runtime("a chain can't be stored in a field; use .to_list() first", arg.value.span));
+            }
+            values[idx] = Some(x);
+        }
+        let mut fields = Vec::with_capacity(values.len());
+        for (p, x) in v.fields.iter().zip(values) {
+            let x = match (x, &p.default) {
+                (Some(x), _) => x,
+                (None, Some(d)) => self.eval(d)?,
+                (None, None) => return Err(Error::runtime(format!("missing field `{}` for `{}`", p.name, v.name), span)),
+            };
+            if !types::fits(&x, &p.ty) {
+                return Err(Error::runtime(format!("`{}` expects `{}: {}`, got {}", v.name, p.name, p.ty, types::describe_typed(&x)), span));
+            }
+            fields.push(x);
+        }
+        Ok(Value::Record(def.clone(), Rc::new(fields)))
     }
 
     // ---- variables ---------------------------------------------------------
@@ -124,6 +217,9 @@ impl Interp {
         if let Value::Chain(_) = v {
             return Err(Error::runtime("a chain can't be stored in a variable; consume it here (.to_list(), .sum(), a for loop, …)", span));
         }
+        if let Value::Ctor(def) = &v {
+            return Err(Error::runtime(format!("`{}` needs its fields: `{}(…)`", def.name(), def.name()), span));
+        }
         self.env.borrow_mut().vars.insert(name.clone(), v);
         Ok(())
     }
@@ -164,7 +260,12 @@ impl Interp {
             ExprKind::Index { recv, index } => {
                 let Some(mut p) = self.place(recv)? else { return Ok(None) };
                 let k = self.eval(index)?;
-                p.keys.push((k, index.span));
+                p.keys.push((Key::Index(k), index.span));
+                Ok(Some(p))
+            }
+            ExprKind::Field { recv, name } => {
+                let Some(mut p) = self.place(recv)? else { return Ok(None) };
+                p.keys.push((Key::Field(name.clone()), e.span));
                 Ok(Some(p))
             }
             _ => Ok(None),
@@ -184,10 +285,19 @@ impl Interp {
                 place.root_span,
             ));
         }
+        if scope.bound.contains(&place.root) {
+            return Err(Error::runtime(
+                format!("`{}` is a copy of a field from `match`; to change the value, assign a whole new one", place.root),
+                place.root_span,
+            ));
+        }
         let mut slot = scope.vars.get_mut(&place.root).unwrap();
         let last = place.keys.len().saturating_sub(1);
         for (n, (k, span)) in place.keys.iter().enumerate() {
-            slot = builtins::index_mut(slot, k, *span, create && n == last)?;
+            slot = match k {
+                Key::Index(k) => builtins::index_mut(slot, k, *span, create && n == last)?,
+                Key::Field(name) => field_mut(slot, name, *span)?,
+            };
         }
         f(slot)
     }
@@ -223,6 +333,7 @@ impl Interp {
                 let v = self.eval(value)?;
                 if let Pattern::Name(n) = pat {
                     self.env.borrow_mut().readonly.remove(n);
+                    self.env.borrow_mut().bound.remove(n);
                 }
                 self.bind_pattern(pat, v, stmt.span)?;
                 Ok(Flow::Normal(None))
@@ -325,9 +436,14 @@ impl Interp {
             }
             StmtKind::Match { subject, arms } => {
                 let v = self.eval(subject)?;
+                self.check_exhaustive(arms.iter().map(|(p, _)| p), &v, subject.span)?;
                 for (pat, body) in arms {
-                    if self.match_pat(pat, &v)? {
-                        return self.exec_block(body);
+                    if let Some(binds) = self.match_pat(pat, &v)? {
+                        let scope = new_scope(Some(self.env.clone()));
+                        return self.in_env(scope, |s| {
+                            s.bind_fields(binds)?;
+                            s.exec_stmts(body)
+                        });
                     }
                 }
                 Err(Error::runtime(format!("no match arm for {}", v.repr()), subject.span))
@@ -338,7 +454,11 @@ impl Interp {
                 Some(e) => self.eval(e)?,
                 None => Value::Unit,
             })),
+            StmtKind::TypeDecl(_) => Ok(Flow::Normal(None)),
             StmtKind::Fun(decl) => {
+                if let Some(Value::Record(..) | Value::Ctor(_)) = self.lookup(&decl.name) {
+                    return Err(Error::runtime(format!("`{}` is already a struct or variant; pick another name", decl.name), decl.span));
+                }
                 let f = Func { decl: decl.clone(), env: self.env.clone(), cache: Default::default() };
                 self.env.borrow_mut().vars.insert(decl.name.clone(), Value::Func(Rc::new(f)));
                 Ok(Flow::Normal(None))
@@ -354,11 +474,76 @@ impl Interp {
         }
     }
 
-    fn match_pat(&mut self, pat: &MatchPat, v: &Value) -> Result<bool> {
+    /// Does `v` match `pat`? On a match, returns the fields a variant pattern binds.
+    fn match_pat(&mut self, pat: &MatchPat, v: &Value) -> Result<Option<Vec<(Pattern, Value)>>> {
         match pat {
-            MatchPat::Wild => Ok(true),
-            MatchPat::Value(e) => Ok(&self.eval(e)? == v),
+            MatchPat::Wild => Ok(Some(Vec::new())),
+            MatchPat::Value(e) => match self.eval_raw(e)? {
+                Value::Ctor(def) => Err(Error::runtime(
+                    format!("`{}` has fields; write `{}({})` to match it", def.name(), def.name(), vec!["_"; def.variant().fields.len()].join(", ")),
+                    e.span,
+                )),
+                p => Ok((&p == v).then(Vec::new)),
+            },
+            MatchPat::Variant { name, binds, span } => {
+                let def = match self.lookup(name) {
+                    Some(Value::Ctor(def)) => def,
+                    Some(Value::Record(..)) => return Err(Error::runtime(format!("`{name}` has no fields; match it as `{name}:`"), *span)),
+                    _ => return Err(Error::runtime(format!("unknown variant `{name}`"), *span)),
+                };
+                let Value::Record(vdef, fields) = v else {
+                    return Err(Error::runtime(format!("can't match {} against the variant `{name}`", describe(v)), *span));
+                };
+                if !Rc::ptr_eq(&def.decl, &vdef.decl) {
+                    return Err(Error::runtime(format!("`{name}` isn't a variant of `{}`", vdef.decl.name), *span));
+                }
+                let names: Vec<&str> = def.variant().fields.iter().map(|p| &*p.name).collect();
+                if binds.len() != names.len() {
+                    return Err(Error::runtime(
+                        format!("`{name}` has {} field(s) ({}), the pattern lists {}", names.len(), names.join(", "), binds.len()),
+                        *span,
+                    ));
+                }
+                if def.index != vdef.index {
+                    return Ok(None);
+                }
+                Ok(Some(binds.iter().cloned().zip(fields.iter().cloned()).collect()))
+            }
         }
+    }
+
+    /// Binds a variant pattern's fields in the arm's scope, read-only.
+    fn bind_fields(&mut self, binds: Vec<(Pattern, Value)>) -> Result<()> {
+        for (pat, v) in binds {
+            self.bind_pattern(&pat, v, Span::default())?;
+            let mut names = Vec::new();
+            pattern_names(&pat, &mut names);
+            self.env.borrow_mut().bound.extend(names);
+        }
+        Ok(())
+    }
+
+    /// A `match` on an enum value without `_` must name every variant.
+    fn check_exhaustive<'p>(&mut self, pats: impl Iterator<Item = &'p MatchPat>, v: &Value, span: Span) -> Result<()> {
+        let Value::Record(def, _) = v else { return Ok(()) };
+        if def.decl.is_struct {
+            return Ok(());
+        }
+        let mut covered: Vec<&Name> = Vec::new();
+        for p in pats {
+            match p {
+                MatchPat::Wild => return Ok(()),
+                MatchPat::Variant { name, .. } => covered.push(name),
+                MatchPat::Value(Expr { kind: ExprKind::Var(name), .. }) => covered.push(name),
+                MatchPat::Value(_) => {}
+            }
+        }
+        let missing: Vec<String> =
+            def.decl.variants.iter().filter(|v| !covered.contains(&&v.name)).map(|v| format!("`{}`", v.name)).collect();
+        if missing.is_empty() {
+            return Ok(());
+        }
+        Err(Error::runtime(format!("this match doesn't handle {} of `{}` (add the arms, or `_`)", missing.join(", "), def.decl.name), span))
     }
 
     fn truthy(&mut self, e: &Expr) -> Result<bool> {
@@ -448,6 +633,10 @@ impl Interp {
                 let k = self.eval(index)?;
                 builtins::index(&c, &k, index.span)?
             }
+            ExprKind::Field { recv, name } => {
+                let r = self.eval(recv)?;
+                field(&r, name, span)?
+            }
             ExprKind::Lambda(l) => Value::Lambda(Rc::new(LambdaV { ast: l.clone(), env: self.env.clone() })),
             ExprKind::IfElse(c, a, b) => {
                 if self.truthy(c)? {
@@ -458,9 +647,14 @@ impl Interp {
             }
             ExprKind::Match(subject, arms) => {
                 let v = self.eval(subject)?;
+                self.check_exhaustive(arms.iter().map(|(p, _)| p), &v, subject.span)?;
                 for (pat, value) in arms {
-                    if self.match_pat(pat, &v)? {
-                        return self.eval(value);
+                    if let Some(binds) = self.match_pat(pat, &v)? {
+                        let scope = new_scope(Some(self.env.clone()));
+                        return self.in_env(scope, |s| {
+                            s.bind_fields(binds)?;
+                            s.eval(value)
+                        });
                     }
                 }
                 return Err(Error::runtime(format!("no match arm for {}", v.repr()), subject.span));
@@ -503,6 +697,8 @@ impl Interp {
         if let Some(v) = self.lookup(name) {
             return match v {
                 Value::Func(f) => self.call_func(&f, args, span),
+                Value::Ctor(def) => self.construct(&def, args, span),
+                Value::Record(..) => Err(Error::runtime(format!("`{name}` has no fields; write `{name}` without parentheses"), span)),
                 Value::Lambda(_) => Err(Error::runtime(format!("`{name}` is a lambda; lambdas can't be stored or called by name"), span)),
                 other => Err(Error::runtime(format!("`{name}` is {}, not a function", describe(&other)), span)),
             };
@@ -903,8 +1099,48 @@ pub fn is_test(s: &Stmt) -> bool {
     matches!(s.kind, StmtKind::Test { .. } | StmtKind::TestBlock { .. })
 }
 
+fn pattern_names(p: &Pattern, out: &mut Vec<Name>) {
+    match p {
+        Pattern::Name(n) => out.push(n.clone()),
+        Pattern::Wild => {}
+        Pattern::Tuple(ps) | Pattern::List(ps) => ps.iter().for_each(|p| pattern_names(p, out)),
+    }
+}
+
+fn field_index(v: &Value, name: &str, span: Span) -> Result<usize> {
+    match v {
+        Value::Record(def, _) if def.decl.is_struct => def
+            .variant()
+            .fields
+            .iter()
+            .position(|p| &*p.name == name)
+            .ok_or_else(|| Error::runtime(format!("`{}` has no field `{name}`", def.decl.name), span)),
+        Value::Record(def, _) => Err(Error::runtime(
+            format!("`.{name}` on the enum `{}`: a variant's fields are read with `match`", def.decl.name),
+            span,
+        )),
+        other => Err(Error::runtime(
+            format!("`.{name}` reads a struct field, but this is {} (methods need parentheses: `.{name}()`)", describe(other)),
+            span,
+        )),
+    }
+}
+
+fn field(v: &Value, name: &str, span: Span) -> Result<Value> {
+    let i = field_index(v, name, span)?;
+    let Value::Record(_, fields) = v else { unreachable!() };
+    Ok(fields[i].clone())
+}
+
+fn field_mut<'a>(v: &'a mut Value, name: &str, span: Span) -> Result<&'a mut Value> {
+    let i = field_index(v, name, span)?;
+    let Value::Record(_, fields) = v else { unreachable!() };
+    Ok(&mut Rc::make_mut(fields)[i])
+}
+
 pub fn describe(v: &Value) -> String {
     match v {
+        Value::Record(def, _) => format!("{} {}", if def.decl.is_struct { "a struct" } else { "the variant" }, def.name()),
         Value::Int(_) | Value::Char(_) | Value::Bool(_) => format!("{} {}", v.type_name(), v.repr()),
         Value::Str(s) if s.len() <= 20 => format!("string {}", v.repr()),
         _ => format!("a {}", v.type_name()),

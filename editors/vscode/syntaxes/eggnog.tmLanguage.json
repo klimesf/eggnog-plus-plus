@@ -131,13 +131,13 @@
           "name": "keyword.operator.expression.eggnog"
         },
         {
-          "match": "=>|\\+=|-=|\\*=|/=|%=|==|!=|<=|>=|->|\\.\\.=?|[-+*/%<>=!]",
+          "match": "=>|<<=|>>=|<<|>>|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|==|!=|<=|>=|->|\\.\\.=?|[-+*/%<>=!&|^]",
           "name": "keyword.operator.eggnog"
         }
       ]
     },
     "method": {
-      "match": "(?<=\\.)\\s*([a-z_][A-Za-z0-9_]*)\\b",
+      "match": "(?<=\\.)\\s*([a-z_][A-Za-z0-9_]*)\\b(?=\\s*\\()",
       "captures": {
         "1": {
           "name": "entity.name.function.member.eggnog"

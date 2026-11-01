@@ -1,16 +1,10 @@
-fun hex2dec(hex: string) -> int:
-  hex.chars().enumerate()
-    .scan(0, (acc, (i, c)) => acc * 16 + "0123456789abcdef".chars().position(it == c))
-    .last()
-
 let vertices = [(0, 0)]
 let boundary = 0
 for line in input.lines():
   let [_, _, code] = line.split(" ").to_list()
-  let dir = code[7..8]
-  let dist = hex2dec(code[2..7])
+  let dist = code[2..7].int(base = 16)
   boundary += dist
-  let step = match dir:
+  let step = match code[7..8]:
     "0": Right
     "1": Down
     "2": Left

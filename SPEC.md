@@ -16,6 +16,7 @@ A type is written the way its values look where there is a literal for them, and
 - tuples: `(int, int)`, like the tuple `(1, 2)`
 - lists: `[int]`, like the list `[1, 2]`; nested: `[[char]]`
 - the other containers: `Set<(int, int)>`, `Map<string, int>`, `Queue<T>`, `Stack<T>`, `MinQueue<T>`, `Grid<char>`
+- structs and enums by name: `Monkey`, `[Instr]`, `Map<string, Module>`
 
 Types appear only after `:` in a parameter and after `->`, so `[int]` never clashes with a list expression like `[x] * n`.
 
@@ -23,6 +24,9 @@ Types appear only after `:` in a parameter and after `->`, so `[int]` never clas
 
 - `int` is a signed 64-bit integer and `float` is a 64-bit IEEE float. There are no other numeric types for now.
 - There are no implicit numeric conversions. Mixing types needs an explicit `as` (`x as float`). This keeps it cheap to add `i128` (or `u64`, `i32`) later, when a puzzle needs it. `as` converts between `int` and `float` and between `char` and `int` (see Characters), nothing else: a string is parsed with `.int()`.
+- `%` is the Euclidean remainder: for `a % m` the result is always in `0..abs(m)`, never negative. So `(c + dc) % width` wraps a coordinate that went below 0 back around (Rust's `rem_euclid`, Python's `%` for a positive `m`): `-1 % 5 == 4`.
+- `/` on ints rounds down to match (Rust's `div_euclid`, Python's `//` for a positive divisor): `-7 / 2 == -4`, so `a == (a / b) * b + a % b` always holds. On a grid that repeats forever, `pos / size` is the copy you're in and `pos % size` the place inside it.
+- **Bitwise operators** on ints: `&`, `|`, `^` (xor), `<<`, `>>`, and `&=`, `|=`, `^=`, `<<=`, `>>=`. A shift by less than 0 or more than 63 traps, and so does a `<<` that pushes bits off the end (like other overflow). `>>` keeps the sign. They don't work on bools, which have `and`, `or` and `!=`. There is no bitwise not: `x ^ mask` flips the bits inside a known width.
 - **Integer overflow always traps**, in every build. That covers `+`, `-`, `*`, unary `-`, and `int::MIN / -1`. Division or remainder by zero also traps. A trap prints an error with the source location and exits with a non-zero status. If benchmarks show the checks matter, they can be limited to debug builds later.
 - `min(a, b)` / `max(a, b)` return the smaller/larger of two values of the same type, compared like `<` (ints, chars, strings, tuples, lists): `best = max(best, x)`. For a whole chain use the terminals `xs.min()` / `xs.max()`. `abs(n)` is the absolute value of an `int`, for Manhattan distances: `abs(r1 - r2) + abs(c1 - c2)`. It traps on `int::Min`, like other overflow.
 - `pow(base, exp)` raises an `int` to a non-negative `int` power: `pow(2, matches - 1)`. A negative exponent traps, and so does overflow. `pow(base, exp, mod = m)` is modular exponentiation: the result is in `0..m`, and it never overflows, even when `m` is close to `int::Max` (the runtime multiplies in 128 bits). There is no `**` operator.
@@ -34,9 +38,10 @@ Types appear only after `:` in a parameter and after `->`, so `[int]` never clas
 - `char` is a single byte, meant for ASCII. There is no Unicode support.
 - Chars compare by their code (`c >= 'a'`), and `char - char` is the `int` distance between them: `c - 'a' + 1`. That's the only arithmetic on chars: `'a' + 1` is an error.
 - `c as int` is a char's code, 0–255: `'a' as int == 97`, for hashes over ASCII codes (2023 d15). `n as char` goes back and traps outside 0–255: `(c as int + 1) as char` is the next letter.
+- `a + b` joins two strings, or a string and a char on either side: `"ab" + "cd"`, `s += c`, `c + s`. Adding an int is an error (use `n.to_string()`), and `'a' + 'b'` stays an error, because chars have no `+`. Each `+` builds a new string, so build long strings with `to_string(sep = …)` on a chain rather than `+=` in a long loop.
 - Strings compare character by character, by code, and a prefix is smaller: `"ab" < "b"`, `"ab" < "abc"`.
 - `s.split(sep)`: a lazy chain of the parts of `s` between occurrences of `sep`: `input.split("\n\n")` gives the blank-line-separated sections.
-- `s.int()`: parses the whole string as an integer (optional leading `-`, digits only). Traps on anything else. To pull numbers *out of* text, use `ints()`.
+- `s.int()`: parses the whole string as an integer (optional leading `-`, digits only). Traps on anything else. To pull numbers *out of* text, use `ints()`. `s.int(base = 16)` parses another base, 2–36, with letters in either case: `"70c71".int(base = 16)`, `"1011".int(base = 2)`.
 - `s.split_once(sep)` → a pair `(before, after)` of strings. Traps if `sep` doesn't occur.
 - `s.len()`, `s.starts_with(prefix, at = 0)` (does `prefix` occur at position `at`?), `s[i]` → `char`, and `s[a..b]` / `s[a..]` → a new `string`. Slicing copies, as everything does under value semantics.
 - `s.lines()`: a lazy chain of the lines of `s`, without their `\n` / `\r\n`.
@@ -68,6 +73,43 @@ Types appear only after `:` in a parameter and after `->`, so `[int]` never clas
   - `Grid(rows, cols, fill)`: a new grid filled with one value
   - rotate/flip: names to be decided
 - Assigning a grid copies it (value semantics): `let next = grid`.
+
+### Structs and enums
+
+```egg
+struct Monkey:
+  items: [int]
+  operation: string
+  divisor: int
+  inspected: int = 0
+
+enum Instr:
+  Noop
+  Addx(n: int)
+  Jump(offset: int, flag: string)
+
+let m = Monkey([79, 98], "old * 19", divisor = 23)
+monkeys[i].items.push(x)
+monkeys[i].inspected += 1
+
+match instr:
+  Noop: cycle += 1
+  Addx(n): x += n
+  Jump(offset, _): pc += offset
+```
+
+- **Declared at the top level only**, and known everywhere in the file, before and after the declaration. One field or variant per line. Fields have a type and may have a default (`inspected: int = 0`); fields with defaults come last.
+- **An enum is a list of variants.** A variant has no fields (`Noop`) or named fields like a struct (`Addx(n: int)`). Each variant can have different fields.
+- **Building a value is a call** with the rules of named arguments: positional first, then by name, defaults filled in: `Monkey([79, 98], "old * 19", divisor = 23)`, `Addx(3)`. A variant without fields is just its name: `Noop`, not `Noop()`.
+- **Names:** struct, enum and variant names use PascalCase, and variants are used without the enum's name (`Addx(3)`, not `Instr::Addx(3)`). All of these share one namespace with each other, the functions and the built-in constants and types, so `enum Turn: Left, Right` is a compile error (`Left` is the built-in direction), and so is the same variant name in two enums.
+- **Struct fields are read with `.`** (`m.divisor`), and a field is a place like an index: `monkeys[i].items.push(x)` and `m.inspected += 1` change the value in its container. A parameter's fields are read-only like the parameter.
+- **An enum's fields are read with `match`.** A variant pattern binds the fields by position, `_` skips one, and the number must match the declaration: `Jump(offset, _):`. The bindings are read-only copies; to change the data, assign a whole new value: `lights[i] = On(level - 1)`.
+- **A `match` on an enum must handle every variant**, or have a `_` arm; a missing variant is a compile error.
+- **Value semantics**, like everything else: assigning a struct or variant copies it.
+- **Equality, hashing and ordering come for free**, so they work in `Set`s, as `Map` keys, as `memo fun` parameters and in `to_sorted`. Variants order by their declaration order, then field by field (like Rust's `#[derive]`); two structs order field by field. Fields must themselves be comparable to order.
+- **Types can be recursive**: `enum Tree:` with `Leaf(value: int)` and `Node(children: [Tree])`. Value semantics means a value never contains itself, so trees are safe; there are no cycles to worry about.
+- **Printing** (`print(x)`, failed tests) shows a value the way it's built: `Monkey(items = [79, 98], operation = "old * 19", divisor = 23, inspected = 0)`, `Addx(n = 3)`, `Noop`.
+- No methods, generics or traits: write plain functions, `fun size(t: Tree) -> int`.
 
 ## Program structure
 
@@ -116,6 +158,8 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 - `Map()` traps on a missing key: `m[k]`.
 - `Map(default = v)` returns `v` for a missing key, so `counts[k] += 1` works. Reading a missing key doesn't insert it.
 - `k in m` checks whether a key is present.
+- `m.keys()` and `m.values()` are lazy chains, and `for (k, v) in m:` goes through the entries as pairs. **The order is unspecified** and may differ between runs, so an answer must never depend on it; sort when you need one: `m.keys().to_sorted()`.
+- `m.remove(k)` removes a key and returns whether it was there; a missing key is not an error. `set.remove(x)` works the same way.
 
 ### Lists
 
@@ -178,6 +222,7 @@ The shape of a method's name tells you what it does:
 2. **`to_` builds a new container** (it allocates): `to_list()`, `to_set()`, `to_map()`, `to_char_grid()`. Every allocation in a program goes through a `to_` call or a constructor.
 3. **Nouns are lazy views or computed values,** with no mutation and no allocation: `input.lines()`, `line.ints()`, `grid.neighbors4(p)`, `len()`, `sum()`.
 4. **`is_` / `has_` are predicates:** `is_empty()`.
+5. **PascalCase is for types, variants and constants:** `Grid`, `Monkey`, `Addx`, `Dirs4`. Everything else is snake_case.
 
 Exceptions: `find`, `filter`, `map` and `split` are verbs that don't mutate. They're kept because the names are standard. And a mutating verb may return the elements it removed as a new list (`pop_many`): that allocation doesn't go through `to_`.
 
@@ -267,7 +312,7 @@ Source files are ASCII. Any other byte outside a string literal is a lexer error
 
 ### Operator precedence
 
-From tightest to loosest: unary `-` `!`, then `as`, then `*` `/` `%`, then `+` `-`, then comparisons and membership (`==` `!=` `<` `<=` `>` `>=` `in` `!in`), then `and`, then `or`. So `pos + Up in grid` means `(pos + Up) in grid`, and `n + c as int * 2` means `n + ((c as int) * 2)`.
+From tightest to loosest: unary `-` `!`, then `as`, then `*` `/` `%`, then `+` `-`, then `<<` `>>`, then `&`, then `^`, then `|`, then ranges (`..` `..=`), then comparisons and membership (`==` `!=` `<` `<=` `>` `>=` `in` `!in`), then `and`, then `or`. So `pos + Up in grid` means `(pos + Up) in grid`, `n + c as int * 2` means `n + ((c as int) * 2)`, and `mask & 1 << k != 0` means `(mask & (1 << k)) != 0` (as in Rust; C and Python would compare first).
 
 ### if / else if / else
 
@@ -295,10 +340,10 @@ match c:
   _: panic("unknown char")
 ```
 
-- Arms are `pattern: body`. The body goes on the same line or in an indented block. Patterns for now: literals and `_`.
+- Arms are `pattern: body`. The body goes on the same line or in an indented block. Patterns for now: literals, constants and variants without fields (`Up:`, `Noop:`), variant patterns that bind fields (`Addx(n):`, see Structs and enums), and `_`.
 - The first matching arm runs, with no fallthrough. `break`/`continue` inside an arm apply to the enclosing loop. If no arm matches, the program traps.
 - `match` can also be an expression when every arm is a single expression: `let step = match c:` followed by arms like `'(': 1`.
-- Guards and destructuring patterns are not designed yet.
+- Guards, nested variant patterns and tuple patterns are not designed yet.
 
 ### Line continuation
 

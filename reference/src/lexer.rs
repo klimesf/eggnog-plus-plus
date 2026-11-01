@@ -15,6 +15,8 @@ pub enum Tok {
     Let,
     Fun,
     Memo,
+    Struct,
+    Enum,
     Inout,
     If,
     Then,
@@ -52,6 +54,15 @@ pub enum Tok {
     StarEq,
     SlashEq,
     PercentEq,
+    AmpEq,
+    PipeEq,
+    CaretEq,
+    ShlEq,
+    ShrEq,
+    Pipe,
+    Caret,
+    Shl,
+    Shr,
     LParen,
     RParen,
     LBracket,
@@ -255,6 +266,8 @@ impl<'a> Lexer<'a> {
             "let" => Tok::Let,
             "fun" => Tok::Fun,
             "memo" => Tok::Memo,
+            "struct" => Tok::Struct,
+            "enum" => Tok::Enum,
             "inout" => Tok::Inout,
             "if" => Tok::If,
             "then" => Tok::Then,
@@ -384,6 +397,13 @@ impl<'a> Lexer<'a> {
         let next = self.peek_at(1);
         let next2 = self.peek_at(2);
         let (tok, len) = match (b, next) {
+            (b'<', Some(b'<')) if next2 == Some(b'=') => (Tok::ShlEq, 3),
+            (b'>', Some(b'>')) if next2 == Some(b'=') => (Tok::ShrEq, 3),
+            (b'<', Some(b'<')) => (Tok::Shl, 2),
+            (b'>', Some(b'>')) => (Tok::Shr, 2),
+            (b'&', Some(b'=')) => (Tok::AmpEq, 2),
+            (b'|', Some(b'=')) => (Tok::PipeEq, 2),
+            (b'^', Some(b'=')) => (Tok::CaretEq, 2),
             (b'=', Some(b'=')) => (Tok::EqEq, 2),
             (b'=', Some(b'>')) => (Tok::FatArrow, 2),
             (b'!', Some(b'=')) => (Tok::NotEq, 2),
@@ -415,6 +435,8 @@ impl<'a> Lexer<'a> {
             (b':', _) => (Tok::Colon, 1),
             (b'.', _) => (Tok::Dot, 1),
             (b'&', _) => (Tok::Amp, 1),
+            (b'|', _) => (Tok::Pipe, 1),
+            (b'^', _) => (Tok::Caret, 1),
             _ if b >= 128 => {
                 let mut end = self.pos + 1;
                 while end < self.src.len() && self.src[end] & 0xC0 == 0x80 {
