@@ -30,7 +30,9 @@ trailing newline is stripped, as the spec says.
   parse errors. Types on lambda parameters and `let` are not checked.
 - **Runtime checks instead of compile-time ones.** Storing a chain, writing to
   a read-only parameter, `&` on a non-`inout` parameter, indexing a tuple,
-  joining lists with `+`, and using a block `if` as a value are runtime errors.
+  joining lists with `+`, using a block `if` as a value, and a `let` that hides
+  a variable of an enclosing block are runtime errors (the last only when that
+  `let` runs).
   The memo rule "don't change a captured variable after the `memo fun` is
   defined" is **not** checked.
 - **No floats** yet.

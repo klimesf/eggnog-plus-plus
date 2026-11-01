@@ -20,10 +20,18 @@ pub struct Scope {
     pub parent: Option<Env>,
     /// Parameters that may not be changed (everything that isn't `inout`).
     pub readonly: HashSet<Name>,
+    /// The outermost scope of the script, a function call or a lambda.
+    pub boundary: bool,
+}
+
+pub fn new_boundary(parent: Option<Env>) -> Env {
+    let e = new_scope(parent);
+    e.borrow_mut().boundary = true;
+    e
 }
 
 pub fn new_scope(parent: Option<Env>) -> Env {
-    Rc::new(RefCell::new(Scope { vars: HashMap::new(), parent, readonly: HashSet::new() }))
+    Rc::new(RefCell::new(Scope { vars: HashMap::new(), parent, readonly: HashSet::new(), boundary: false }))
 }
 
 #[derive(Clone)]

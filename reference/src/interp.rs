@@ -35,7 +35,7 @@ impl Interp {
     /// A fresh interpreter whose script scope defines `input`.
     pub fn new(input: &str, base_dir: PathBuf) -> Self {
         let globals = builtins::globals();
-        let env = new_scope(Some(globals));
+        let env = new_boundary(Some(globals));
         env.borrow_mut().vars.insert("input".into(), Value::Str(input.into()));
         Interp { env, base_dir }
     }
@@ -93,6 +93,31 @@ impl Interp {
             env = e.borrow().parent.clone();
         }
         None
+    }
+
+    /// A `let` in an inner block may not reuse a name from an enclosing block
+    /// of the same script, function or lambda body.
+    fn check_outer_names(&self, pat: &Pattern, span: Span) -> Result<()> {
+        match pat {
+            Pattern::Wild => Ok(()),
+            Pattern::Name(n) => {
+                if self.env.borrow().boundary {
+                    return Ok(());
+                }
+                let mut env = self.env.borrow().parent.clone();
+                while let Some(e) = env {
+                    if e.borrow().vars.contains_key(n) {
+                        return Err(Error::runtime(format!("`let {n}` hides the `{n}` of an enclosing block; to change it, drop the `let`"), span));
+                    }
+                    if e.borrow().boundary {
+                        break;
+                    }
+                    env = e.borrow().parent.clone();
+                }
+                Ok(())
+            }
+            Pattern::Tuple(ps) | Pattern::List(ps) => ps.iter().try_for_each(|p| self.check_outer_names(p, span)),
+        }
     }
 
     fn define(&mut self, name: &Name, v: Value, span: Span) -> Result<()> {
@@ -194,6 +219,7 @@ impl Interp {
     fn exec_stmt(&mut self, stmt: &Stmt) -> Result<Flow> {
         match &stmt.kind {
             StmtKind::Let(pat, value) => {
+                self.check_outer_names(pat, stmt.span)?;
                 let v = self.eval(value)?;
                 if let Pattern::Name(n) = pat {
                     self.env.borrow_mut().readonly.remove(n);
@@ -581,7 +607,7 @@ impl Interp {
                 return Ok(v.clone());
             }
         }
-        let call_env = new_scope(Some(f.env.clone()));
+        let call_env = new_boundary(Some(f.env.clone()));
         {
             let mut scope = call_env.borrow_mut();
             for (p, v) in decl.params.iter().zip(full.iter()) {
@@ -641,7 +667,7 @@ impl Interp {
                 } else {
                     return Err(Error::runtime(format!("lambda takes {} parameters, got {}", params.len(), args.len()), span));
                 };
-                let scope = new_scope(Some(l.env.clone()));
+                let scope = new_boundary(Some(l.env.clone()));
                 let l = l.clone();
                 self.in_env(scope, |s| {
                     for (p, v) in l.ast.params.iter().zip(args) {

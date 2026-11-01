@@ -1,0 +1,14 @@
+let pos = (1, 1)
+let grid = "ab\ncd".to_char_grid()
+fun corner() -> char:
+  let grid = "xy".to_char_grid() # a function body starts fresh
+  grid[(0, 0)]
+let seen = 0
+for pos in grid.positions(): seen += 1 # loop variables may reuse outer names
+if pos = grid.find('d'): seen += 10 # and so may conditional bindings
+let rows = [pos].map(pos => pos).to_list() # and lambda parameters
+if seen > 0:
+  let inner = 1
+  seen += inner
+let inner = 2 # the inner block has ended, so this is no clash
+(corner(), seen, rows, inner)

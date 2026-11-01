@@ -255,6 +255,8 @@ memo fun blink(stone: int, blinks: int) -> int:
 
 `let` can declare a name that already exists in the same scope. The new variable replaces the old one from that line on and can have a different type, as in Rust. Typical use: the raw text and its parsed form share a name, `let (workflows, parts) = input.split_once("\n\n")` followed by `let workflows = workflows.lines()…to_map()`. When the parsing needs a loop, put it in a function: `let workflows = parse_workflows(workflows)`.
 
+A `let` inside a block can't reuse the name of a variable from an enclosing block of the same script, function or lambda body; it's a compile error. Since all variables are mutable, `let total = …` inside a loop is almost always a mistake for `total = …`, which would otherwise leave the outer `total` silently unchanged. Only `let` is affected: `for` variables, conditional bindings (`if x = …:`) and lambda parameters may reuse outer names (`energized.map((pos, _) => pos)`). A function or lambda body starts fresh, so a function's local `grid` may share its name with a script-level `grid`.
+
 ### Blocks
 
 Blocks are defined by indentation, Python style. A line that opens a block ends with `:`. A short body can go on the same line after the colon (`if done: break`).
