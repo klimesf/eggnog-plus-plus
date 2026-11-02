@@ -72,6 +72,8 @@ After it works, read every line and ask what breaks without it:
 - `period`, `offset` and an extra loop (2023 d14)
 - the `loop` set, once the grid could record the loop itself (2023 d10)
 
+But "the answer didn't change" only shows that *your input* never reaches a line, not that the line does nothing. Deleting it is then a choice to rely on the input, which is fine in AoC (see "input nicer than promised" in `LEARNINGS.md`); say so in a one-line comment, so the next reader knows it's an assumption and not an oversight. In 2023 d19 part 2, the guard for a rule outside the current range changed nothing on the input, but `in{a>2000:A,a>3000:R,A}` gives 320000000000000 without it instead of 256000000000000.
+
 ## 9. Let the data structure do the bookkeeping
 
 Mark state in the grid you already have instead of a parallel `Set`. In 2023 d10 part 2, writing `'O'` into `grid2x` replaced two sets, and the answer became "cells still `'.'`".
@@ -100,6 +102,12 @@ When cases come in several hand-written groups, look for the one condition they 
 When one expression does several jobs at once, pull the innermost job out into a small function with a name. The outer code then reads as a sentence, and the index arithmetic stays in one place.
 
 - **2023 d13 part 2:** pairing mirrored lines, counting differing cells and summing were one nested chain. `count_smudges(a, b)` (`a.zip(b).count((x, y) => x != y)`) took out the counting, so the mirror check became "sum the differences of each mirrored pair".
+
+## 14. Give each kind of thing its own shape
+
+When one tuple shape has to hold several kinds of thing, the kinds that don't use a slot fill it with a placeholder (`("_", 0, 0, next)`), and every reader has to know which slots are fake. An enum gives each kind exactly the fields it has, and `match` names the kind instead of comparing a string.
+
+- **2023 d19:** a rule is either a condition with a category, an operator, a value and a target, or just a target. Two variants (`Condition(…)` and `Send(next)`) instead of a 4-tuple with `"_"`, `0`, `0`.
 
 ## The routine
 
