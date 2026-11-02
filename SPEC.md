@@ -117,6 +117,7 @@ match instr:
 - `input` is a predefined `string`, read by the runner from a file or stdin.
 - **One file per part** (e.g. `day01_part1.egg`, `day01_part2.egg`). Code shared between the parts is copied. Shared helpers should move into the standard library instead (see PLAN.md, stdlib principle).
 - The value of the last expression is the answer: an `int` or a `string`. A string answer may span several lines (e.g. a drawn screen), and the runner prints it as is. A top-level `return` ends the program early with an answer.
+- `panic(message)` stops the program with an error that shows `message` (any value, turned into a string) and the source location, for states that should never happen: `_: panic("unknown opcode " + op.to_string())`. A search that always finds its answer needs no `panic` after it: if the program ends without an answer, that's already an error.
 - Top-level `fun`s that use script variables are local closures (see Local functions). Top-level `fun`s that don't are plain functions that `test` blocks can call.
 
 ### Input

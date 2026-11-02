@@ -71,6 +71,7 @@ After it works, read every line and ask what breaks without it:
 - a `memo` that never gets a cache hit (2023 d12)
 - `period`, `offset` and an extra loop (2023 d14)
 - the `loop` set, once the grid could record the loop itself (2023 d10)
+- a `panic` after a search that returns from inside its loops (2019 d2 part 2): the input always has an answer, and if the search misses it, the interpreter already stops with "the program has no answer" and points at the loop
 
 But "the answer didn't change" only shows that *your input* never reaches a line, not that the line does nothing. Deleting it is then a choice to rely on the input, which is fine in AoC (see "input nicer than promised" in `LEARNINGS.md`); say so in a one-line comment, so the next reader knows it's an assumption and not an oversight. In 2023 d19 part 2, the guard for a rule outside the current range changed nothing on the input, but `in{a>2000:A,a>3000:R,A}` gives 320000000000000 without it instead of 256000000000000.
 
