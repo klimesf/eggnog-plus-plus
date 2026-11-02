@@ -1,0 +1,20 @@
+fun intcode(inout mem: [int]):
+  let ip = 0
+  while true:
+    match mem[ip]:
+      1: mem[mem[ip + 3]] = mem[mem[ip + 1]] + mem[mem[ip + 2]]
+      2: mem[mem[ip + 3]] = mem[mem[ip + 1]] * mem[mem[ip + 2]]
+      99: return
+      _: panic("unknown opcode " + mem[ip].to_string())
+    ip += 4
+
+let initial = input.ints().to_list()
+for noun in 0..100:
+  for verb in 0..100:
+    let program = initial
+    program[1] = noun
+    program[2] = verb
+    intcode(&program)
+    if program[0] == 19690720: return 100 * noun + verb
+
+test file("input.txt") == 4259

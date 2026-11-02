@@ -1,0 +1,22 @@
+fun intcode(inout mem: [int]):
+  let ip = 0
+  while true:
+    match mem[ip]:
+      1: mem[mem[ip + 3]] = mem[mem[ip + 1]] + mem[mem[ip + 2]]
+      2: mem[mem[ip + 3]] = mem[mem[ip + 1]] * mem[mem[ip + 2]]
+      99: return
+      _: panic("unknown opcode " + mem[ip].to_string())
+    ip += 4
+
+let program = input.ints().to_list()
+program[1] = 12
+program[2] = 2
+intcode(&program)
+program[0]
+
+test "intcode":
+  let program = "1,9,10,3,2,3,11,0,99,30,40,50".ints().to_list()
+  intcode(&program)
+  assert program[0] == 3500
+
+test file("input.txt") == 5866663
