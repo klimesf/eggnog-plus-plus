@@ -1,0 +1,7 @@
+input.ints().map(it / 3 - 2).sum()
+
+test "12" == 2
+test "14" == 2
+test "1969" == 654
+test "100756" == 33583
+test file("input.txt") == 3395944

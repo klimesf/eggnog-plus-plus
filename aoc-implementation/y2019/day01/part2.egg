@@ -1,0 +1,10 @@
+fun fuel_required(mass: int) -> int:
+  let fuel = mass / 3 - 2
+  if fuel > 0 then fuel + fuel_required(fuel) else 0
+
+input.ints().map(fuel_required(it)).sum()
+
+test "14" == 2
+test "1969" == 966
+test "100756" == 50346
+test file("input.txt") == 5091036
