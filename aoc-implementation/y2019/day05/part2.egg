@@ -1,0 +1,55 @@
+fun intcode(mem: [int], input: Queue<int>) -> [int]:
+  let ip = 0
+  let mem = mem
+  let input = input
+  let output = []
+
+  fun param(n: int) -> int:
+    let mode = mem[ip] / pow(10, n + 1) % 10
+    if mode == 1 then mem[ip + n] else mem[mem[ip + n]]
+
+  fun write(n: int, value: int):
+    mem[mem[ip + n]] = value
+
+  while true:
+    match mem[ip] % 100:
+      1:
+        write(3, param(1) + param(2))
+        ip += 4
+      2:
+        write(3, param(1) * param(2))
+        ip += 4
+      3:
+        write(1, input.pop())
+        ip += 2
+      4:
+        output.push(param(1))
+        ip += 2
+      5:
+        if param(1) != 0: ip = param(2)
+        else: ip += 3
+      6:
+        if param(1) == 0: ip = param(2)
+        else: ip += 3
+      7:
+        write(3, if param(1) < param(2) then 1 else 0)
+        ip += 4
+      8:
+        write(3, if param(1) == param(2) then 1 else 0)
+        ip += 4
+      99: return output
+      _: panic("unknown opcode " + mem[ip].to_string())
+
+intcode(input.ints().to_list(), Queue(5)).last()
+
+test "intcode":
+  let program = """
+    3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
+    1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
+    999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99
+    """.ints().to_list()
+  assert intcode(program, Queue(7)).last() == 999
+  assert intcode(program, Queue(8)).last() == 1000
+  assert intcode(program, Queue(9)).last() == 1001
+
+test file("input.txt") == 9006327
