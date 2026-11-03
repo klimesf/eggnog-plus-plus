@@ -132,6 +132,10 @@ pub enum Source {
     Chars { s: Rc<str>, rev: bool },
     /// `end` is exclusive; `None` means no end.
     Range { start: i64, end: Option<i64>, rev: bool },
+    /// Lists of `items` picked by position, in lexicographic order of the
+    /// positions: every ordering of all of them (`k` is `None`), or every
+    /// subset of `k` in their original order.
+    Arrangements { items: Rc<Vec<Value>>, k: Option<usize> },
 }
 
 #[derive(Clone)]

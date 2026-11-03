@@ -1,0 +1,13 @@
+# by position, in lexicographic order of the positions; equal elements repeat
+let perms = (1..=3).permutations().to_list()
+let pairs = "abcd".chars().combinations(2).map([a, b] => a + b.to_string()).to_list()
+let first = (0..10).permutations().first()
+(
+  perms,
+  pairs,
+  [1, 1].permutations().count(),
+  [5, 6].combinations(0).to_list(),
+  [5, 6].combinations(3).count(),
+  (0..5).combinations(3).count(),
+  first,
+)

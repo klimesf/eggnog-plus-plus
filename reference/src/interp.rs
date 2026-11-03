@@ -974,6 +974,43 @@ impl Interp {
                     }
                 }
             }
+            Source::Arrangements { items, k } => {
+                let items = items.clone();
+                let n = items.len();
+                let pick = |idx: &[usize]| Value::List(Rc::new(idx.iter().map(|&i| items[i].clone()).collect()));
+                match k {
+                    None => {
+                        let mut idx: Vec<usize> = (0..n).collect();
+                        loop {
+                            if !self.feed(stages, 0, pick(&idx), states, span, sink)? {
+                                return Ok(false);
+                            }
+                            // Next ordering of the positions: the rightmost rise, its next
+                            // larger value to the right swapped in, and the tail sorted.
+                            let Some(i) = (1..n).rev().find(|&i| idx[i - 1] < idx[i]) else { break };
+                            let j = (i..n).rev().find(|&j| idx[j] > idx[i - 1]).unwrap();
+                            idx.swap(i - 1, j);
+                            idx[i..].reverse();
+                        }
+                    }
+                    Some(k) if *k <= n => {
+                        let k = *k;
+                        let mut idx: Vec<usize> = (0..k).collect();
+                        loop {
+                            if !self.feed(stages, 0, pick(&idx), states, span, sink)? {
+                                return Ok(false);
+                            }
+                            // Next subset: the rightmost position that can still move right.
+                            let Some(i) = (0..k).rev().find(|&i| idx[i] < n - k + i) else { break };
+                            idx[i] += 1;
+                            for j in i + 1..k {
+                                idx[j] = idx[j - 1] + 1;
+                            }
+                        }
+                    }
+                    Some(_) => {}
+                }
+            }
         }
         Ok(true)
     }

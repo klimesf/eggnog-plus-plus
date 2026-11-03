@@ -749,7 +749,8 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
         name,
         "map" | "filter" | "flat_map" | "enumerate" | "scan" | "take" | "skip" | "rev" | "sum" | "product" | "count" | "any" | "all" | "min"
             | "max" | "first" | "last" | "find" | "find_last" | "position" | "to_list" | "to_set" | "to_map" | "to_string"
-            | "to_sorted" | "is_empty" | "chunks" | "windows" | "intersection" | "zip"
+            | "to_sorted" | "is_empty" | "chunks" | "windows" | "intersection" | "zip" | "permutations"
+            | "combinations"
     ) {
         if matches!(recv, Value::Str(_)) && !matches!(name, "count" | "rev") {
             return Err(Error::runtime(
@@ -865,6 +866,9 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
                 Source::Chars { s, rev } => Source::Chars { s: s.clone(), rev: !rev },
                 Source::Range { start, end: Some(e), rev } => Source::Range { start: *start, end: Some(*e), rev: !rev },
                 Source::Range { end: None, .. } => return Err(Error::runtime("can't reverse a range without an end", span)),
+                Source::Arrangements { .. } => {
+                    return Err(Error::runtime("rev() works only on lists, strings and ranges, not on permutations or combinations", span))
+                }
             };
             Ok(Value::Chain(Rc::new(ChainV { source, stages: Vec::new(), span })))
         }
@@ -965,6 +969,29 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
                 return Err(Error::runtime("intersection needs a string, list or Set to look in, not a chain; collect it with to_set()", span));
             }
             Ok(with_stage(chain, StageOp::Intersect(other), span))
+        }
+        "permutations" | "combinations" => {
+            let k = if name == "permutations" {
+                a.check(0, &[], name, span)?;
+                None
+            } else {
+                a.check(1, &["k"], name, span)?;
+                let k = int_arg(&a.req(0, "k", name, span)?, "combinations' size", span)?;
+                if k < 0 {
+                    return Err(Error::runtime(format!("combinations({k}): the size can't be negative"), span));
+                }
+                Some(k as usize)
+            };
+            if chain.stages.is_empty() && matches!(chain.source, Source::Range { end: None, .. }) {
+                return Err(Error::runtime(format!("{name} needs a finite sequence, not a range without an end"), span));
+            }
+            let mut items = Vec::new();
+            it.drive(chain, &mut |_, v| {
+                items.push(v);
+                Ok(true)
+            })?;
+            let source = Source::Arrangements { items: Rc::new(items), k };
+            Ok(Value::Chain(Rc::new(ChainV { source, stages: Vec::new(), span })))
         }
         "to_sorted" => Ok(Value::List(Rc::new(sorted(it, chain, &a, name, span)?))),
         "min" | "max" if a.get(usize::MAX, "count").is_some() => {
