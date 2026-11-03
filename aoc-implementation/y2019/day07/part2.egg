@@ -1,0 +1,64 @@
+struct Amplifier:
+  mem: [int]
+  ip: int = 0
+  input: Queue<int> = Queue()
+
+fun run(inout amp: Amplifier, inout output: Queue<int>) -> bool:
+
+  fun param(n: int) -> int:
+    let mode = amp.mem[amp.ip] / pow(10, n + 1) % 10
+    if mode == 1 then amp.mem[amp.ip + n] else amp.mem[amp.mem[amp.ip + n]]
+
+  fun write(n: int, value: int):
+    amp.mem[amp.mem[amp.ip + n]] = value
+
+  while true:
+    match amp.mem[amp.ip] % 100:
+      1:
+        write(3, param(1) + param(2))
+        amp.ip += 4
+      2:
+        write(3, param(1) * param(2))
+        amp.ip += 4
+      3:
+        if amp.input.is_empty(): return false
+        write(1, amp.input.pop())
+        amp.ip += 2
+      4:
+        output.push(param(1))
+        amp.ip += 2
+      5:
+        if param(1) != 0: amp.ip = param(2)
+        else: amp.ip += 3
+      6:
+        if param(1) == 0: amp.ip = param(2)
+        else: amp.ip += 3
+      7:
+        write(3, if param(1) < param(2) then 1 else 0)
+        amp.ip += 4
+      8:
+        write(3, if param(1) == param(2) then 1 else 0)
+        amp.ip += 4
+      99: return true
+      _: panic("unknown opcode " + amp.mem[amp.ip].to_string())
+
+fun amplify(program: [int], phases: [int]) -> int:
+  let amps = phases.map(Amplifier(program, input = Queue(it))).to_list()
+  amps[0].input.push(0) # initial signal
+  for i in 0..:
+    let amp = i % 5
+    let output = Queue()
+    let halted = run(&amps[amp], &output)
+    if halted and amp == 4: return output.last()
+    while n = output.pop(): amps[(amp + 1) % 5].input.push(n)
+
+let program = input.ints().to_list()
+(5..10).permutations().map(amplify(program, it)).max()
+
+test "3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5" == 139629729
+test """
+3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,
+-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,
+53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10
+""" == 18216
+test file("input.txt") == 36497698
