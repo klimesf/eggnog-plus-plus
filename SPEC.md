@@ -288,7 +288,7 @@ memo fun blink(stone: int, blinks: int) -> int:
 
 ### Lambdas
 
-- Syntax: `p => expr`, `(a, b) => expr`, with optional types `(p: int) => expr`. A single parameter can destructure a list: `.map([a, b, c] => …)` (traps if the length doesn't match, like `let [a, b, c] = xs`).
+- Syntax: `p => expr`, `(a, b) => expr`, with optional types `(p: int) => expr`. The body is one expression; a step that needs more is a named `fun` called from the chain: `.map(amplify(program, it))`. A single parameter can destructure a list: `.map([a, b, c] => …)` (traps if the length doesn't match, like `let [a, b, c] = xs`).
 - **Implicit parameter `it`:** an argument of a lambda-taking method that uses `it` is a one-parameter lambda, so `.map(it.int())` means `.map(x => x.int())`, and `.map(arrangements(it))` calls a function on each element. The lambda-taking methods are `map`, `filter`, `flat_map`, `scan`, `any`, `all`, `count`, `find`, `find_last`, `position`, and the `by =` of `sort` / `to_sorted`. `count` takes a predicate or a value to count: `xs.count(it > 4)`, `xs.count(1)`.
   - `it` belongs to the **innermost** lambda-taking call: in `.filter(it.chars().any(it == 'a'))` the second `it` is a char. To reach an outer element from inside, name it: `.filter(s => s.chars().any(c => c == s[0]))`.
   - Use explicit `x =>` for two or more parameters and for destructuring (`[a, b] => …`).

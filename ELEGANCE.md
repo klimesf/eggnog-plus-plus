@@ -125,5 +125,6 @@ After the answer is accepted:
 3. **Read aloud:** compare each line to the puzzle sentence it implements (rules 4 and 5).
 4. **Delete:** remove what does nothing (rule 8).
 5. **Tests:** make sure every puzzle example is there (rule 10).
+6. **Measure:** `hyperfine -N --warmup 2 "egg run part1.egg input.txt"` for time and memory. Compare a rewrite against the old version in the same call, since a single run can be off by 40 ms. Memory far above a couple of MiB for a small program means something is kept alive by mistake (2019 d7 found a leak in the interpreter this way).
 
 Each pass takes a minute or two, and doing it every day is what builds the habit.
