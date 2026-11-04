@@ -386,6 +386,9 @@ fn values_of(v: &Value, span: Span) -> Result<Vec<Value>> {
 
 // ---- global functions ------------------------------------------------------------
 
+/// The functions `call_global` knows, for hints when a variable hides one.
+pub const GLOBAL_FUNCTIONS: &[&str] = &["panic", "print", "min", "max", "pow", "abs", "gcd", "lcm", "file"];
+
 pub fn call_global(it: &mut Interp, name: &str, a: Args, span: Span) -> Result<Value> {
     match name {
         "panic" => {

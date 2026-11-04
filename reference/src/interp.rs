@@ -827,7 +827,14 @@ impl Interp {
                 Value::Ctor(def) => self.construct(&def, args, span),
                 Value::Record(..) => Err(Error::runtime(format!("`{name}` has no fields; write `{name}` without parentheses"), span)),
                 Value::Lambda(_) => Err(Error::runtime(format!("`{name}` is a lambda; lambdas can't be stored or called by name"), span)),
-                other => Err(Error::runtime(format!("`{name}` is {}, not a function", describe(&other)), span)),
+                other => {
+                    let hint = if builtins::GLOBAL_FUNCTIONS.contains(&&**name) {
+                        format!(" (a variable named `{name}` hides the built-in function; rename the variable)")
+                    } else {
+                        String::new()
+                    };
+                    Err(Error::runtime(format!("`{name}` is {}, not a function{hint}", describe(&other)), span))
+                }
             };
         }
         let a = self.eval_args(args)?;
