@@ -1,0 +1,76 @@
+let grid = input.to_char_grid()
+let asteroids = grid.positions().filter(grid[it] == '#').to_list()
+
+fun direction(a: (int, int), b: (int, int)) -> (int, int):
+  let (dr, dc) = b - a
+  let divisor = gcd(dr, dc)
+  (dr / divisor, dc / divisor)
+
+fun quadrant(dir: (int, int)) -> int:
+  let (y, x) = dir
+  if x >= 0 and y <= 0: return 0
+  if x >= 0 and y > 0: return 1
+  if x < 0 and y > 0: return 2
+  else: return 3
+
+fun angle(dir: (int, int)) -> int:
+  let (y, x) = dir
+  let q = quadrant(dir)
+  let scale = pow(grid.rows() + grid.cols(), 2)
+  q * scale + scale * abs(if q in [0, 2] then x else y) / (abs(x) + abs(y))
+
+fun detect(pos: (int, int)) -> Set<(int, int)>:
+  asteroids.filter(pos != it).map(direction(pos, it)).to_set()
+
+fun vaporization_order(station: (int, int), asteroid: (int, int)) -> (int, int):
+  let (dr, dc) = asteroid - station
+  let divisor = gcd(dr, dc)
+  let dir = (dr / divisor, dc / divisor)
+  ((1..divisor).count(grid[station + it * dir] == '#'), angle(dir))
+
+fun vaporize(station: (int, int)) -> [(int, int)]:
+  asteroids.filter(station != it).to_sorted(by = vaporization_order(station, it)).to_list()
+
+let station = asteroids.to_sorted(by = detect(it).len()).last()
+let vaporized = vaporize(station)
+let (y, x) = vaporized[199]
+100 * x + y
+
+test "vaporization order":
+  let grid = """
+  .#..##.###...#######
+  ##.############..##.
+  .#.######.########.#
+  .###.#######.####.#.
+  #####.##.#.##.###.##
+  ..#####..#.#########
+  ####################
+  #.####....###.#.#.##
+  ##.#################
+  #####.##.###..####..
+  ..######..##.#######
+  ####.##.####...##..#
+  .#####..#.######.###
+  ##...#.##########...
+  #.##########.#######
+  .####.#.###.###.#.##
+  ....##.##.###..#####
+  .#.#.###########.###
+  #.#.#.#####.####.###
+  ###.##.####.##.#..##
+  """.to_char_grid()
+
+  let asteroids = grid.positions().filter(grid[it] == '#').to_list()
+  let station = asteroids.to_sorted(by = detect(it).len()).last()
+  let vaporized = vaporize(station)
+  assert vaporized[0] == (12, 11)
+  assert vaporized[1] == (1, 12)
+  assert vaporized[2] == (2, 12)
+  assert vaporized[9] == (8, 12)
+  assert vaporized[19] == (0, 16)
+  assert vaporized[198] == (6, 9)
+  assert vaporized[199] == (2, 8)
+  assert vaporized[200] == (9, 10)
+  assert vaporized[298] == (1, 11)
+
+test file("input.txt") == 408
