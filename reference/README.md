@@ -36,6 +36,8 @@ trailing newline is stripped, as the spec says.
   `let` runs). A `match` that misses an enum variant fails only when it runs
   on a value of that enum; a struct or variant name that clashes with a
   built-in, a function or another variant fails when the program starts.
+  An import's problems (a missing name, a library with statements or its own
+  imports, a clash) are found when the program starts.
   The memo rule "don't change a captured variable after the `memo fun` is
   defined" is **not** checked.
 - **No floats** yet.

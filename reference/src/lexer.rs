@@ -17,6 +17,7 @@ pub enum Tok {
     Memo,
     Struct,
     Enum,
+    Import,
     Inout,
     If,
     Then,
@@ -87,6 +88,19 @@ pub enum Tok {
 pub struct Token {
     pub tok: Tok,
     pub span: Span,
+}
+
+/// Tokenizes a file whose spans start at `base` (see `error::register_source`).
+pub fn tokenize_at(source: &str, base: usize) -> Result<Vec<Token>> {
+    let shift = |s: Span| Span::new(s.start + base, s.end + base);
+    let mut tokens = tokenize(source).map_err(|mut e| {
+        e.span = shift(e.span);
+        e
+    })?;
+    for t in &mut tokens {
+        t.span = shift(t.span);
+    }
+    Ok(tokens)
 }
 
 pub fn tokenize(source: &str) -> Result<Vec<Token>> {
@@ -268,6 +282,7 @@ impl<'a> Lexer<'a> {
             "memo" => Tok::Memo,
             "struct" => Tok::Struct,
             "enum" => Tok::Enum,
+            "import" => Tok::Import,
             "inout" => Tok::Inout,
             "if" => Tok::If,
             "then" => Tok::Then,

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the tests of every part*.egg with the reference interpreter.
+# Runs the tests of every part*.egg and library .egg file with the reference interpreter.
 #
 #   ./test.sh                 all days
 #   ./test.sh y2022           one year
@@ -31,8 +31,8 @@ fi
 
 passed=0
 failed=()
-for file in $(cd "$here" && find . -name 'part*.egg' -path "*${filter}*" | sed 's|^\./||' | sort); do
-  if [[ ! -f "$here/$(dirname "$file")/input.txt" ]]; then
+for file in $(cd "$here" && find . -name '*.egg' -path "*${filter}*" | sed 's|^\./||' | sort); do
+  if [[ "$(basename "$file")" == part* && ! -f "$here/$(dirname "$file")/input.txt" ]]; then
     note=" ${yellow}(no input.txt)${reset}"
   else
     note=""
@@ -50,7 +50,7 @@ done
 
 total=$((passed + ${#failed[@]}))
 if [[ $total == 0 ]]; then
-  echo "no part*.egg files match '$filter'"
+  echo "no .egg files match '$filter'"
   exit 1
 fi
 echo

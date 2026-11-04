@@ -1,0 +1,2 @@
+import triple from "lib/imports.egg"
+triple(2)

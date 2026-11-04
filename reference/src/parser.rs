@@ -52,6 +52,13 @@ pub fn parse(tokens: &[Token]) -> Result<Program> {
         if p.eat(&Tok::Newline) {
             continue;
         }
+        if p.check(&Tok::Import) {
+            if body.iter().any(|s: &Stmt| !matches!(s.kind, StmtKind::Import { .. })) {
+                return Err(Error::parse("imports go at the top of the file, before anything else", p.span()));
+            }
+            body.push(p.import()?);
+            continue;
+        }
         if matches!(p.peek(), Tok::Struct | Tok::Enum) {
             let start = p.span();
             let decl = p.type_decl()?;
@@ -154,6 +161,35 @@ impl<'a> Parser<'a> {
 
     // ---- statements --------------------------------------------------------
 
+    /// `import a, B from "path.egg"`. `from` is only special here.
+    fn import(&mut self) -> Result<Stmt> {
+        let start = self.advance().span;
+        let mut names = Vec::new();
+        loop {
+            let span = self.span();
+            names.push((self.ident("a name to import")?, span));
+            if !self.eat(&Tok::Comma) {
+                break;
+            }
+        }
+        match self.peek() {
+            Tok::Ident(n) if &**n == "from" => {
+                self.advance();
+            }
+            other => return Err(Error::parse(format!("expected `from \"file.egg\"`, found {}", describe(other)), self.span())),
+        }
+        let path_span = self.span();
+        let path = match self.peek().clone() {
+            Tok::Str(s) => {
+                self.advance();
+                s
+            }
+            other => return Err(Error::parse(format!("expected the file to import from, as a string, found {}", describe(&other)), path_span)),
+        };
+        self.end_stmt()?;
+        Ok(Stmt { kind: StmtKind::Import { names, path, path_span }, span: start.to(path_span) })
+    }
+
     fn stmt(&mut self) -> Result<Stmt> {
         let start = self.span();
         let kind = match self.peek() {
@@ -199,6 +235,7 @@ impl<'a> Parser<'a> {
             }
             Tok::Fun | Tok::Memo => StmtKind::Fun(Rc::new(self.fun()?)),
             Tok::Struct | Tok::Enum => return Err(Error::parse("declare structs and enums at the top level, not inside a block", start)),
+            Tok::Import => return Err(Error::parse("imports go at the top of the file, not inside a block", start)),
             Tok::Return => {
                 self.advance();
                 let value = if matches!(self.peek(), Tok::Newline | Tok::Dedent | Tok::Eof) { None } else { Some(self.expr()?) };

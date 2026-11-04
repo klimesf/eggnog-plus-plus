@@ -1,0 +1,2 @@
+import double from "lib/script.egg"
+double(2)

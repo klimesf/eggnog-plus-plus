@@ -1,0 +1,20 @@
+# a library: only declarations and tests
+struct Point:
+  x: int
+  y: int
+
+enum Shape:
+  Circle(r: int)
+  Square(side: int)
+
+fun area(s: Shape) -> int:
+  match s:
+    Circle(r): times3(r * r)
+    Square(side): side * side
+
+# not imported, but `area` can still call it
+fun times3(n: int) -> int:
+  n * 3
+
+test "area":
+  assert area(Square(2)) == 4

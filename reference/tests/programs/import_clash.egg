@@ -1,0 +1,6 @@
+import area from "lib/shapes.egg"
+
+fun area(n: int) -> int:
+  n
+
+area(1)

@@ -1,0 +1,4 @@
+import double from "script.egg"
+
+fun triple(n: int) -> int:
+  n * 3

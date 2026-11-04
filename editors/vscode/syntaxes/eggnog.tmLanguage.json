@@ -75,6 +75,13 @@
     "keyword": {
       "patterns": [
         {
+          "match": "^(import)\\b[^\"#]*?\\b(from)\\b",
+          "captures": {
+            "1": { "name": "keyword.control.import.eggnog" },
+            "2": { "name": "keyword.control.import.eggnog" }
+          }
+        },
+        {
           "match": "\\b(if|then|else|while|for|in|match|return|break|continue|test|assert)\\b",
           "name": "keyword.control.eggnog"
         },

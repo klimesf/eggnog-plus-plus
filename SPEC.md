@@ -115,10 +115,23 @@ match instr:
 
 - **A program file is a script.** Its top-level statements are the body of an implicit `solve(input)` function.
 - `input` is a predefined `string`, read by the runner from a file or stdin.
-- **One file per part** (e.g. `day01_part1.egg`, `day01_part2.egg`). Code shared between the parts is copied. Shared helpers should move into the standard library instead (see PLAN.md, stdlib principle).
+- **One file per part** (e.g. `day01_part1.egg`, `day01_part2.egg`). Code shared between the two parts of a day is copied, so each part reads on its own. Code shared by many days (2019's Intcode computer) goes in a library file (see Library files). General helpers should move into the standard library instead (see PLAN.md, stdlib principle).
 - The value of the last expression is the answer: an `int` or a `string`. A string answer may span several lines (e.g. a drawn screen), and the runner prints it as is. A top-level `return` ends the program early with an answer.
 - `panic(message)` stops the program with an error that shows `message` (any value, turned into a string) and the source location, for states that should never happen: `_: panic("unknown opcode " + op.to_string())`. A search that always finds its answer needs no `panic` after it: if the program ends without an answer, that's already an error.
 - Top-level `fun`s that use script variables are local closures (see Local functions). Top-level `fun`s that don't are plain functions that `test` blocks can call.
+
+### Library files
+
+```egg
+import run, Amplifier from "../intcode.egg"
+```
+
+- **A library file holds only declarations:** `fun`, `struct`, `enum`, and `test` blocks that check them. Nothing else at its top level (no `let`, no loops, no answer), and nothing else marks it as a library. Running one has no answer; `eggnog test intcode.egg` runs its tests.
+- **`import` lists the names it takes**, then `from` and the file's path, relative to the importing file. Imports go at the top of the file, before anything else. `from` is special only here; it stays usable as a variable name.
+- **Only the listed names become visible.** An imported `fun` can still call the library's other functions. Importing an enum brings its variants, which are used bare as always; a variant can't be imported alone.
+- **A library file can't import.** Every import is one level deep, so there are no cycles and no chains of files to follow.
+- Imported names share the one namespace of functions, types and variants: an imported name that's already declared or built in, or a local `fun` with an imported name, is a compile error.
+- Importing a file doesn't run its `test` blocks.
 
 ### Input
 

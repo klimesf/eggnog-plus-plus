@@ -35,6 +35,8 @@ pub enum StmtKind {
     /// `test "name":` with a block of asserts
     TestBlock { name: Name, body: Vec<Stmt> },
     Assert(Expr),
+    /// `import run, Amplifier from "../intcode.egg"`, top of the file only.
+    Import { names: Vec<(Name, Span)>, path: Rc<str>, path_span: Span },
 }
 
 #[derive(Debug)]

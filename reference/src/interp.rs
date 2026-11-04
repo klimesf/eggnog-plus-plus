@@ -1,14 +1,14 @@
 //! The tree-walking evaluator: statements, expressions, places, calls and
 //! lazy chains.
 
-use std::collections::VecDeque;
-use std::path::PathBuf;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::path::{Component, Path, PathBuf};
 use std::rc::Rc;
 
 use crate::types;
 use crate::ast::*;
 use crate::builtins::{self, Args};
-use crate::error::{Error, Result, Span};
+use crate::error::{self, Error, Result, Span};
 use crate::value::*;
 
 pub enum Flow {
@@ -38,7 +38,68 @@ pub struct Interp {
     pub env: Env,
     pub base_dir: PathBuf,
     /// Names of the declared structs and enums.
-    type_names: std::collections::HashSet<Name>,
+    type_names: HashSet<Name>,
+    /// Names brought in by `import`; a local `fun` can't reuse one.
+    imported: HashSet<Name>,
+}
+
+/// A parsed library file, shared by every import of it, so its types are the
+/// same `Rc`s in the importer and in the library's own functions.
+struct Library {
+    program: Program,
+    dir: PathBuf,
+    /// The path for messages, relative to where the runner started.
+    name: String,
+}
+
+thread_local! {
+    static LIBRARIES: std::cell::RefCell<HashMap<PathBuf, Rc<Library>>> = Default::default();
+}
+
+/// `a/b/../c.egg` → `a/c.egg`, for readable file names in messages.
+fn tidy(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for c in path.components() {
+        match c {
+            Component::ParentDir if matches!(out.components().next_back(), Some(Component::Normal(_))) => {
+                out.pop();
+            }
+            Component::CurDir => {}
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+fn load_library(base_dir: &Path, path: &str, span: Span) -> Result<Rc<Library>> {
+    let full = tidy(&base_dir.join(path));
+    let key = full.canonicalize().unwrap_or_else(|_| full.clone());
+    if let Some(lib) = LIBRARIES.with(|l| l.borrow().get(&key).cloned()) {
+        return Ok(lib);
+    }
+    let name = full.display().to_string();
+    let source = std::fs::read_to_string(&full)
+        .map_err(|e| Error::runtime(format!("can't read `{name}`: {e}"), span))?;
+    let base = error::register_source(name.clone(), source.as_str().into());
+    let program = crate::parser::parse(&crate::lexer::tokenize_at(&source, base)?)?;
+    for s in &program.body {
+        match &s.kind {
+            StmtKind::Fun(_) | StmtKind::TypeDecl(_) | StmtKind::Test { .. } | StmtKind::TestBlock { .. } => {}
+            StmtKind::Import { .. } => {
+                return Err(Error::runtime("a library file can't import; only the solution files import", s.span));
+            }
+            _ => {
+                return Err(Error::runtime(
+                    format!("`{name}` can't be imported: a library file holds only `fun`, `struct`, `enum` and `test` at its top level"),
+                    s.span,
+                ));
+            }
+        }
+    }
+    let dir = full.parent().map(Path::to_path_buf).unwrap_or_default();
+    let lib = Rc::new(Library { program, dir, name });
+    LIBRARIES.with(|l| l.borrow_mut().insert(key, lib.clone()));
+    Ok(lib)
 }
 
 impl Interp {
@@ -47,7 +108,7 @@ impl Interp {
         let globals = builtins::globals();
         let env = new_boundary(Some(globals));
         env.borrow_mut().vars.insert("input".into(), Value::Str(input.into()));
-        Interp { env, base_dir, type_names: Default::default() }
+        Interp { env, base_dir, type_names: Default::default(), imported: Default::default() }
     }
 
     pub fn in_env<R>(&mut self, env: Env, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
@@ -68,6 +129,7 @@ impl Interp {
 
     /// Runs a whole program and returns its answer.
     pub fn run(&mut self, program: &Program) -> Result<Value> {
+        self.declare_imports(program)?;
         self.declare_types(program)?;
         let answer = match self.exec_stmts(&program.body)? {
             Flow::Return(v) | Flow::Normal(Some(v)) => v,
@@ -89,6 +151,59 @@ impl Interp {
             return Err(Error::runtime("the program's last expression produced no value", span));
         }
         Ok(answer)
+    }
+
+    /// Brings the names listed by each `import` into the script scope. A
+    /// library's functions run in a scope of their own that holds the whole
+    /// library, so they can call helpers that weren't imported.
+    pub fn declare_imports(&mut self, program: &Program) -> Result<()> {
+        for s in &program.body {
+            let StmtKind::Import { names, path, path_span } = &s.kind else { continue };
+            let lib = load_library(&self.base_dir, path, *path_span)?;
+            let mut li = Interp::new("", lib.dir.clone());
+            li.env.borrow_mut().vars.remove("input");
+            li.declare_types(&lib.program)?;
+            for f in lib.program.body.iter().filter(|s| matches!(s.kind, StmtKind::Fun(_))) {
+                li.exec_stmts(std::slice::from_ref(f))?;
+            }
+            for (name, span) in names {
+                let ty = lib.program.body.iter().find_map(|s| match &s.kind {
+                    StmtKind::TypeDecl(d) if &d.name == name => Some(d.clone()),
+                    _ => None,
+                });
+                let mut bring: Vec<Name> = Vec::new();
+                if let Some(decl) = &ty {
+                    bring.extend(decl.variants.iter().map(|v| v.name.clone()));
+                } else if matches!(li.env.borrow().vars.get(name), Some(Value::Func(_))) {
+                    bring.push(name.clone());
+                } else {
+                    let hint = if lib.program.body.iter().any(|s| match &s.kind {
+                        StmtKind::TypeDecl(d) => d.variants.iter().any(|v| &v.name == name),
+                        _ => false,
+                    }) {
+                        "; import its enum to get all of its variants"
+                    } else {
+                        ""
+                    };
+                    return Err(Error::runtime(format!("`{}` declares no function, struct or enum `{name}`{hint}", lib.name), *span));
+                }
+                for n in bring.iter().chain(ty.as_ref().map(|d| &d.name)) {
+                    if RESERVED_TYPE_NAMES.contains(&&**n) || self.lookup(n).is_some() || self.type_names.contains(n) {
+                        return Err(Error::runtime(format!("`{n}` is already defined; it can't be imported too"), *span));
+                    }
+                }
+                for n in bring {
+                    let v = li.env.borrow().vars.get(&n).cloned().expect("declared in the library");
+                    self.env.borrow_mut().vars.insert(n.clone(), v);
+                    self.imported.insert(n);
+                }
+                if let Some(decl) = ty {
+                    self.type_names.insert(decl.name.clone());
+                    self.imported.insert(decl.name.clone());
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Types are known everywhere in the file, like in a compiled language.
@@ -465,6 +580,9 @@ impl Interp {
             })),
             StmtKind::TypeDecl(_) => Ok(Flow::Normal(None)),
             StmtKind::Fun(decl) => {
+                if self.imported.contains(&decl.name) {
+                    return Err(Error::runtime(format!("`{}` is imported; pick another name", decl.name), decl.span));
+                }
                 if let Some(Value::Record(..) | Value::Ctor(_)) = self.lookup(&decl.name) {
                     return Err(Error::runtime(format!("`{}` is already a struct or variant; pick another name", decl.name), decl.span));
                 }
@@ -472,7 +590,7 @@ impl Interp {
                 self.env.borrow_mut().vars.insert(decl.name.clone(), Value::Func(Rc::new(f)));
                 Ok(Flow::Normal(None))
             }
-            StmtKind::Test { .. } | StmtKind::TestBlock { .. } => Ok(Flow::Normal(None)),
+            StmtKind::Test { .. } | StmtKind::TestBlock { .. } | StmtKind::Import { .. } => Ok(Flow::Normal(None)),
             StmtKind::Assert(e) => {
                 if self.truthy(e)? {
                     Ok(Flow::Normal(None))

@@ -1,0 +1,7 @@
+import area, Shape, Point from "lib/shapes.egg"
+
+fun total(shapes: [Shape]) -> int:
+  shapes.map(area(it)).sum()
+
+let p = Point(1, y = 2)
+(total([Circle(1), Square(3)]), p, p.x + p.y)

@@ -1,0 +1,6 @@
+import Shape from "lib/shapes.egg"
+
+enum Other:
+  Square(n: int)
+
+1
