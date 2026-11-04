@@ -57,6 +57,15 @@ impl Interp {
         r
     }
 
+    /// Like `in_env`, for a scope made just for this block or call. A local
+    /// `fun` holds its defining scope, which holds the `fun`: a cycle that `Rc`
+    /// never frees. Functions can't escape, so drop them when the scope ends.
+    pub fn in_scope<R>(&mut self, scope: Env, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
+        let r = self.in_env(scope.clone(), f);
+        scope.borrow_mut().vars.retain(|_, v| !matches!(v, Value::Func(_)));
+        r
+    }
+
     /// Runs a whole program and returns its answer.
     pub fn run(&mut self, program: &Program) -> Result<Value> {
         self.declare_types(program)?;
@@ -323,7 +332,7 @@ impl Interp {
 
     fn exec_block(&mut self, stmts: &[Stmt]) -> Result<Flow> {
         let scope = new_scope(Some(self.env.clone()));
-        self.in_env(scope, |s| s.exec_stmts(stmts))
+        self.in_scope(scope, |s| s.exec_stmts(stmts))
     }
 
     fn exec_stmt(&mut self, stmt: &Stmt) -> Result<Flow> {
@@ -374,7 +383,7 @@ impl Interp {
                             false
                         } else {
                             let scope = new_scope(Some(self.env.clone()));
-                            return self.in_env(scope, |s| {
+                            return self.in_scope(scope, |s| {
                                 s.bind_pattern(pat, v, e.span)?;
                                 s.exec_stmts(then)
                             });
@@ -389,7 +398,7 @@ impl Interp {
             StmtKind::While { cond, body } => {
                 loop {
                     let scope = new_scope(Some(self.env.clone()));
-                    let flow = self.in_env(scope, |s| {
+                    let flow = self.in_scope(scope, |s| {
                         let go = match cond {
                             Cond::Expr(e) => s.truthy(e)?,
                             Cond::Bind(pat, e) => {
@@ -419,7 +428,7 @@ impl Interp {
                 let span = iter.span;
                 self.drive(&chain, &mut |s, v| {
                     let scope = new_scope(Some(s.env.clone()));
-                    let f = s.in_env(scope, |s| {
+                    let f = s.in_scope(scope, |s| {
                         s.bind_pattern(pat, v, span)?;
                         s.exec_stmts(body)
                     })?;
@@ -440,7 +449,7 @@ impl Interp {
                 for (pat, body) in arms {
                     if let Some(binds) = self.match_pat(pat, &v)? {
                         let scope = new_scope(Some(self.env.clone()));
-                        return self.in_env(scope, |s| {
+                        return self.in_scope(scope, |s| {
                             s.bind_fields(binds)?;
                             s.exec_stmts(body)
                         });
@@ -651,7 +660,7 @@ impl Interp {
                 for (pat, value) in arms {
                     if let Some(binds) = self.match_pat(pat, &v)? {
                         let scope = new_scope(Some(self.env.clone()));
-                        return self.in_env(scope, |s| {
+                        return self.in_scope(scope, |s| {
                             s.bind_fields(binds)?;
                             s.eval(value)
                         });
@@ -813,7 +822,7 @@ impl Interp {
                 }
             }
         }
-        let flow = self.in_env(call_env.clone(), |s| s.exec_stmts(&decl.body))?;
+        let flow = self.in_scope(call_env.clone(), |s| s.exec_stmts(&decl.body))?;
         let explicit_return = matches!(flow, Flow::Return(_));
         let result = match flow {
             Flow::Return(v) | Flow::Normal(Some(v)) => v,
@@ -865,7 +874,7 @@ impl Interp {
                 };
                 let scope = new_boundary(Some(l.env.clone()));
                 let l = l.clone();
-                self.in_env(scope, |s| {
+                self.in_scope(scope, |s| {
                     for (p, v) in l.ast.params.iter().zip(args) {
                         s.bind_pattern(p, v, l.ast.body.span)?;
                     }
