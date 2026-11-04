@@ -110,6 +110,12 @@ When one tuple shape has to hold several kinds of thing, the kinds that don't us
 
 - **2023 d19:** a rule is either a condition with a category, an operator, a value and a target, or just a target. Two variants (`Condition(…)` and `Send(next)`) instead of a 4-tuple with `"_"`, `0`, `0`.
 
+## 15. Keep what belongs to one thing in one value
+
+When several lists are indexed by the same `i` (`ips[i]`, `mems[i]`, `inputs[i]`), they describe one list of things. Make the thing a struct and keep one list of it. Building, passing and adding a field then each happen once, not once per list.
+
+- **2019 d7 part 2:** four parallel lists and four `&…[amp]` arguments became `amps: [Amplifier]` with `memory`, `ip` and `input`. Each amplifier is built with its phase in one `map`, and d9's relative base is one more field instead of a fifth list.
+
 ## The routine
 
 After the answer is accepted:
