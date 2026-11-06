@@ -3,7 +3,7 @@ fun hash(word: string) -> int:
   .scan(0, (current_value, c) => (current_value + c as int) * 17 % 256)
   .last()
   
-let boxes = [[]] * 266
+let boxes = [[]] * 256
 
 for step in input.split(","):
   if '-' in step:

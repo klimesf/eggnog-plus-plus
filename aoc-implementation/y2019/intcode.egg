@@ -53,10 +53,10 @@ fun intcode(program: [int], input: Queue<int>) -> [int]:
 
 test "copy itself":
   let program = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99".ints().to_list()
-  intcode(program, Queue()) == program
+  assert intcode(program, Queue()) == program
 
 test "output 16-digit number":
-  intcode("104,1125899906842624,99".ints().to_list(), Queue()) == 1125899906842624
+  assert intcode("104,1125899906842624,99".ints().to_list(), Queue()).last() == 1125899906842624
 
 test "output large number in the middle":
-  intcode("1102,34915192,34915192,7,4,7,99,0".ints().to_list(), Queue()) == 1219070632396864
+  assert intcode("1102,34915192,34915192,7,4,7,99,0".ints().to_list(), Queue()).last() == 1219070632396864

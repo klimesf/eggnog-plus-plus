@@ -27,7 +27,7 @@ Before writing `for`, `break` and a counter, ask whether a chain method already 
 
 | You wrote | It's already |
 |---|---|
-| loop with `break` and `+= 1` | `.filter(it < r).count()` (2023 d11) |
+| loop with `break` and `+= 1` | `.count(it < r)` (2023 d11) |
 | `enumerate().filter().map().first()` | `.position(...)` (2023 d15) |
 | slicing out one element | `.filter(it != x).to_list()` (2023 d15) |
 | `.to_sorted()` just to make a list | `.to_list()` (2023 d11) |
@@ -82,7 +82,7 @@ Mark state in the grid you already have instead of a parallel `Set`. In 2023 d10
 ## 10. Tests are part of the solution
 
 - Add every example from the puzzle text, especially the noisy or tricky ones. 2023 d10's noisy example caught a real bug that the input hid.
-- When a part has no direct example, check it another way (2023 d11's factor 10 and 100).
+- When a part has no direct example, check it another way. 2023 d11 part 2 has no example for a factor of a million, but the puzzle gives answers for factors 10 and 100; testing those needs the factor as a parameter (rule 2).
 
 ## 11. Algorithm first, micro-optimizations rarely
 
@@ -115,6 +115,12 @@ When one tuple shape has to hold several kinds of thing, the kinds that don't us
 When several lists are indexed by the same `i` (`ips[i]`, `mems[i]`, `inputs[i]`), they describe one list of things. Make the thing a struct and keep one list of it. Building, passing and adding a field then each happen once, not once per list.
 
 - **2019 d7 part 2:** four parallel lists and four `&…[amp]` arguments became `amps: [Amplifier]` with `memory`, `ip` and `input`. Each amplifier is built with its phase in one `map`, and d9's relative base is one more field instead of a fifth list.
+
+## 16. A test counts as a caller
+
+Inline a step that's used once. But when a named test checks that step, it has two callers, and inlining it makes the test repeat the script's lines: the test then checks a copy, which keeps passing after the script changes.
+
+- **2019 d10 part 2:** inlining `vaporize(station)` put the station and the sort into the test a second time. Keeping the function lets the test call the same code the answer comes from.
 
 ## The routine
 
