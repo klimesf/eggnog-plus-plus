@@ -41,6 +41,9 @@ pub struct Interp {
     type_names: HashSet<Name>,
     /// Names brought in by `import`; a local `fun` can't reuse one.
     imported: HashSet<Name>,
+    /// In a named test: the script's top-level variables, which the test must
+    /// define itself if the functions it calls use them.
+    pub script_vars: HashSet<Name>,
 }
 
 /// A parsed library file, shared by every import of it, so its types are the
@@ -108,7 +111,7 @@ impl Interp {
         let globals = builtins::globals();
         let env = new_boundary(Some(globals));
         env.borrow_mut().vars.insert("input".into(), Value::Str(input.into()));
-        Interp { env, base_dir, type_names: Default::default(), imported: Default::default() }
+        Interp { env, base_dir, type_names: Default::default(), imported: Default::default(), script_vars: Default::default() }
     }
 
     pub fn in_env<R>(&mut self, env: Env, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
@@ -707,7 +710,16 @@ impl Interp {
             ExprKind::Var(n) if &**n == "it" && self.lookup(n).is_none() => {
                 return Err(Error::runtime("`it` only works inside an argument of a lambda-taking method (`.map(it * 2)`)", span));
             }
-            ExprKind::Var(n) => self.lookup(n).ok_or_else(|| Error::runtime(format!("unknown name `{n}`"), span))?,
+            ExprKind::Var(n) => match self.lookup(n) {
+                Some(v) => v,
+                None if self.script_vars.contains(n) => {
+                    return Err(Error::runtime(
+                        format!("`{n}` is a script variable, and a named test doesn't run the script; define it in the test with `let {n} = …`, or pass it as a parameter"),
+                        span,
+                    ))
+                }
+                None => return Err(Error::runtime(format!("unknown name `{n}`"), span)),
+            },
             ExprKind::Path(t, m) => match (&**t, &**m) {
                 ("int", "Max") => Value::Int(i64::MAX),
                 ("int", "Min") => Value::Int(i64::MIN),

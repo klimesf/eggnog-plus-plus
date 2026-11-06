@@ -38,3 +38,37 @@ fn run_all() {
     }
     assert!(failures.is_empty(), "{} of {} programs failed:\n{}", failures.len(), paths.len(), failures.join("\n"));
 }
+
+/// A named test runs the script's functions with the test's own `let`s in
+/// place of the script's variables; only the variables the called functions
+/// reach must be defined.
+#[test]
+fn named_test_supplies_script_variables() {
+    let source = r#"
+let grid = input.lines().to_list()
+let other = 5
+
+fun height() -> int:
+  grid.len()
+
+fun unused() -> int:
+  other
+
+test "supplies grid":
+  let grid = ["a", "b"]
+  assert height() == 2
+
+test "missing grid":
+  assert height() == 2
+"#;
+    let program = eggnog_ref::parse_source(source).unwrap();
+    let results = eggnog_ref::run_tests(&program, Path::new("."));
+    assert_eq!(results.len(), 2);
+    assert!(results[0].outcome.is_ok(), "the test that defines `grid` should pass");
+    match &results[1].outcome {
+        Err(eggnog_ref::TestFailure::Error(e)) => {
+            assert!(e.message.contains("`grid` is a script variable"), "unexpected message: {}", e.message)
+        }
+        _ => panic!("the test without `grid` should fail with the script-variable hint"),
+    }
+}

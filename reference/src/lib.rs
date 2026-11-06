@@ -72,6 +72,11 @@ pub fn run_tests(program: &Program, base_dir: &Path) -> Vec<TestResult> {
             StmtKind::TestBlock { body, .. } => {
                 let outcome = (|| {
                     let mut it = Interp::new("", base_dir.to_path_buf());
+                    for s in &program.body {
+                        if let StmtKind::Let(pat, _) = &s.kind {
+                            pattern_names(pat, &mut it.script_vars);
+                        }
+                    }
                     it.declare_imports(program).map_err(TestFailure::Error)?;
                     it.declare_types(program).map_err(TestFailure::Error)?;
                     // Only the types and functions are defined; the script itself doesn't run.
@@ -88,4 +93,14 @@ pub fn run_tests(program: &Program, base_dir: &Path) -> Vec<TestResult> {
         }
     }
     results
+}
+
+fn pattern_names(p: &ast::Pattern, out: &mut std::collections::HashSet<ast::Name>) {
+    match p {
+        ast::Pattern::Name(n) => {
+            out.insert(n.clone());
+        }
+        ast::Pattern::Wild => {}
+        ast::Pattern::Tuple(ps) | ast::Pattern::List(ps) => ps.iter().for_each(|p| pattern_names(p, out)),
+    }
 }

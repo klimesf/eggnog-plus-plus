@@ -38,6 +38,9 @@ trailing newline is stripped, as the spec says.
   built-in, a function or another variant fails when the program starts.
   An import's problems (a missing name, a library with statements or its own
   imports, a clash) are found when the program starts.
+  A named test that doesn't define a script variable its functions use fails
+  only when that use runs (with a hint naming the variable), and the type of
+  the test's replacement isn't checked.
   The memo rule "don't change a captured variable after the `memo fun` is
   defined" is **not** checked.
 - **No floats** yet.

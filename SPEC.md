@@ -146,11 +146,25 @@ test "(())" == 0                       # a string literal is the input itself
 test file("example.txt") == 36        # file(...) reads the input from a file, relative to the .egg file
 test file("input.txt") == 552
 
-test "score":                          # a named block is a unit test of a plain function
+test "score":                          # a named block tests the script's functions
   assert score('a') == 1
 ```
 
-`eggnog test day10.egg` runs them. Each input test runs the script from scratch, including empty memo caches. Inline and file inputs get the same trailing-newline stripping as `input`. (The form `test "name":` with a block is still a proposal.)
+`eggnog test day10.egg` runs them. Each input test runs the script from scratch, including empty memo caches. Inline and file inputs get the same trailing-newline stripping as `input`.
+
+A named test doesn't run the script. It calls the script's functions directly, and its own top-level `let`s take the place of the script's variables. So functions that read a script-level `grid` can be tested on an example grid (2019 d10 part 2 checks the vaporization order this way):
+
+```egg
+let grid = input.to_char_grid()
+fun height() -> int:
+  grid.rows()
+
+test "height":
+  let grid = ".#\n#.\n..".to_char_grid()
+  assert height() == 3
+```
+
+The test must define every script variable that the functions it calls use, directly or through other calls, with the same type; a missing one is a compile error naming the variable. Variables used only by functions the test never reaches don't need to be defined.
 
 ## Built-in constants
 
