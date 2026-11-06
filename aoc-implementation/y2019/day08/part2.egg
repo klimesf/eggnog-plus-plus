@@ -1,0 +1,30 @@
+
+fun decode(encoded: string, width: int, height: int) -> string:
+  let layers = encoded.chars().chunks(width * height).to_list()
+
+  fun pixel(i: int) -> char:
+    let color = layers
+      .map(it[i])
+      .filter(it != '2')
+      .first()
+    if color == '1' then '#' else ' '
+
+  (0..width * height)
+    .map(pixel(it))
+    .chunks(width)
+    .map(it.to_string())
+    .to_string(sep = "\n")
+
+decode(input, 25, 6)
+
+test "decode":
+  assert decode("0222112222120000", 2, 2) == " #\n# "
+
+test file("input.txt") == """
+###  #  # #### ###  ###  
+#  # #  #    # #  # #  # 
+#  # #  #   #  ###  #  # 
+###  #  #  #   #  # ###  
+# #  #  # #    #  # #    
+#  #  ##  #### ###  #    
+"""
