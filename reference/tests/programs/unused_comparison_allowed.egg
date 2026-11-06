@@ -1,0 +1,13 @@
+# Comparisons that give a value, and calls used for their effect, are fine.
+fun is_small(n: int) -> bool:
+  n < 10
+
+fun describe(n: int) -> bool:
+  match n:
+    0: true
+    _: n > 0 and is_small(n)
+
+let seen = Set()
+seen.add(1)
+seen.add(1)
+(describe(0), describe(5), describe(50), 1 in seen)

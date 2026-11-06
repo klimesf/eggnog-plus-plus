@@ -67,7 +67,52 @@ pub fn parse(tokens: &[Token]) -> Result<Program> {
         }
         body.push(p.stmt()?);
     }
+    check_unused(&body, true)?;
     Ok(Program { body })
+}
+
+/// A comparison, `in` or logic expression whose value is thrown away is
+/// almost always a missing `assert` (or `return`), so it's an error. Calls
+/// stay allowed: `seen.add(p)` is used for its effect. `gives_value` says
+/// whether the block's last statement is its value (a function body, the
+/// script, a `match` arm in such a place).
+fn check_unused(stmts: &[Stmt], gives_value: bool) -> Result<()> {
+    let value_stmt = if gives_value {
+        stmts.iter().rposition(|s| !matches!(s.kind, StmtKind::Test { .. } | StmtKind::TestBlock { .. } | StmtKind::Fun(_) | StmtKind::TypeDecl(_) | StmtKind::Import { .. }))
+    } else {
+        None
+    };
+    for (i, s) in stmts.iter().enumerate() {
+        let used = value_stmt == Some(i);
+        match &s.kind {
+            StmtKind::Expr(e) if !used && is_bool_op(e) => {
+                return Err(Error::parse("this comparison's result is never used; did you mean `assert …`?", e.span));
+            }
+            StmtKind::If { then, els, .. } => {
+                check_unused(then, false)?;
+                if let Some(els) = els {
+                    check_unused(els, false)?;
+                }
+            }
+            StmtKind::While { body, .. } | StmtKind::For { body, .. } | StmtKind::TestBlock { body, .. } => check_unused(body, false)?,
+            StmtKind::Match { arms, .. } => {
+                for (_, arm) in arms {
+                    check_unused(arm, used)?;
+                }
+            }
+            StmtKind::Fun(f) => check_unused(&f.body, true)?,
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn is_bool_op(e: &Expr) -> bool {
+    match &e.kind {
+        ExprKind::Binary(op, ..) => matches!(op, BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge),
+        ExprKind::And(..) | ExprKind::Or(..) | ExprKind::In { .. } | ExprKind::Unary(UnOp::Not, _) => true,
+        _ => false,
+    }
 }
 
 struct Parser<'a> {
