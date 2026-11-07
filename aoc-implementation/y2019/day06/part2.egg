@@ -1,0 +1,33 @@
+let orbits = input.lines()
+  .map(it.split_once(")"))
+  .map((center, satellite) => (satellite, center))
+  .to_map()
+
+fun parents_of(object: string) -> Set<string>:
+  let center = object
+  let parents = Set()
+  while center != "COM":
+    center = orbits[center]
+    parents.add(center)
+  parents
+
+let you = parents_of("YOU")
+let santa = parents_of("SAN")
+you.len() + santa.len() - 2 * you.intersection(santa).count()
+
+test """
+COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L
+K)YOU
+I)SAN
+""" == 4
+test file("input.txt") == 412

@@ -1,0 +1,25 @@
+let orbits = input.lines()
+  .map(it.split_once(")"))
+  .map((center, satellite) => (satellite, center))
+  .to_map()
+
+memo fun checksum(object: string) -> int:
+  if object == "COM": return 0
+  return 1 + checksum(orbits[object])
+
+orbits.keys().map(checksum(it)).sum()
+
+test """
+COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L
+""" == 42
+test file("input.txt") == 186597
