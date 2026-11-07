@@ -191,6 +191,7 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 - `Map()` traps on a missing key: `m[k]`.
 - `Map(default = v)` returns `v` for a missing key, so `counts[k] += 1` works. Reading a missing key doesn't insert it.
 - `k in m` checks whether a key is present.
+- `pairs.to_map()` builds a Map from `(key, value)` tuples. A key that appears twice traps instead of silently keeping one value; to overwrite or combine values, fill the Map in a loop: `for d in digits: counts[d] += 1`.
 - `m.keys()` and `m.values()` are lazy chains, and `for (k, v) in m:` goes through the entries as pairs. **The order is unspecified** and may differ between runs, so an answer must never depend on it; sort when you need one: `m.keys().to_sorted()`.
 - `m.remove(k)` removes a key and returns whether it was there; a missing key is not an error. `set.remove(x)` works the same way.
 

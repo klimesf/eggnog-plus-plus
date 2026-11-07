@@ -1162,7 +1162,12 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
                     for v in items {
                         match &v {
                             Value::Tuple(t) if t.len() == 2 => {
-                                m.map.insert(t[0].clone(), t[1].clone());
+                                if m.map.insert(t[0].clone(), t[1].clone()).is_some() {
+                                    return Err(Error::runtime(
+                                        format!("to_map: the key {} appears twice; to keep the last value, fill a Map in a loop", t[0].repr()),
+                                        span,
+                                    ));
+                                }
                             }
                             _ => return Err(Error::runtime(format!("to_map needs (key, value) pairs, found {}", describe(&v)), span)),
                         }
