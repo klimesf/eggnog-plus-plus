@@ -1,0 +1,37 @@
+import parse_packet, compare from "packet.egg"
+
+let packets = input.lines()
+  .filter(it.len() > 0)
+  .map(parse_packet(it))
+  .to_list()
+
+let divider_1 = parse_packet("[[2]]")
+let divider_2 = parse_packet("[[6]]")
+(packets.count(compare(it, divider_1) < 0) + 1) * (packets.count(compare(it, divider_2) < 0) + 2)
+
+test """
+[1,1,3,1,1]
+[1,1,5,1,1]
+
+[[1],[2,3,4]]
+[[1],4]
+
+[9]
+[[8,7,6]]
+
+[[4,4],4,4]
+[[4,4],4,4,4]
+
+[7,7,7,7]
+[7,7,7]
+
+[]
+[3]
+
+[[[]]]
+[[]]
+
+[1,[2,[3,[4,[5,6,7]]]],8,9]
+[1,[2,[3,[4,[5,6,0]]]],8,9]
+""" == 140
+test file("input.txt") == 26712

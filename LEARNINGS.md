@@ -31,6 +31,10 @@ Estimate the work before optimizing: number of states × work per state. 2023 d1
 
 When most of a range fails one cheap rule, build only the values that pass it, and keep the full definition as the filter. In 2019 d4 only about 3,000 of the 541,000 numbers have digits that never go down; a recursion where each digit starts from the previous one builds just those, and the run went from 1.29 s to 24 ms. Keep the full check (`meets`, written like the puzzle text) even though the generator already enforces part of it: the examples then test the rules directly, the repeated check is cheap on the few candidates, and the answer stays right as long as the generator never *misses* a valid value. Producing extra candidates would only cost time.
 
+## Parse nested input with one call per value
+
+Nested input (2022 d13 packets like `[1,[2,[3]]]`) parses most simply with a recursive function where each call reads exactly one value: a whole number, or a list whose loop calls the function once per element and stops at `]`. Pass the position as `inout` (`fun parse(packet: string, inout at: int) -> Data`), so each call moves it forward itself; returning `(value, position)` pairs makes every caller unpack and reassign. Check for `]` before reading an element, or `[]` gets parsed as a list holding an empty list. In d13, a loop condition `i < packet.len()` hid exactly that bug, and the tests still passed. Compared with a character loop that keeps a stack of open lists and a buffer for the digits, it's shorter, handles `[]` without a special case, and ran faster (34 ms vs 47 ms).
+
 ## Don't simulate what you can compute
 
 - **Huge repetition counts** (2023 d14, a billion cycles): find where the state repeats and jump ahead with `%`. Save each step's answer as you go, so you don't have to replay the cycles to reach it.
