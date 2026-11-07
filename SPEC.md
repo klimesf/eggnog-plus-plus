@@ -343,6 +343,8 @@ A variable may take the name of a function or a built-in: `let input = input` ma
 
 Blocks are defined by indentation, Python style. A line that opens a block ends with `:`. A short body can go on the same line after the colon (`if done: break`).
 
+**Every indentation level is exactly 2 spaces**, so all code is indented the same way: a block 2 spaces deeper than the line that opens it, and a `.method()` continuation line 2 spaces deeper than its statement (see Line continuation). Any other step is a lexer error. Lines inside open brackets are free, for wrapping long arguments.
+
 **Tab characters in indentation are a lexer error.** Indent with spaces only.
 
 Source files are ASCII. Any other byte outside a string literal is a lexer error. This catches non-breaking spaces (macOS Option+Space), which look like normal spaces.
@@ -384,7 +386,7 @@ match c:
 
 ### Line continuation
 
-- A line that starts with `.` continues the expression on the previous line, so chains can be spread over several lines.
+- A line that starts with `.` continues the expression on the previous line, so chains can be spread over several lines. It's indented 2 spaces deeper than the statement it continues.
 - Newlines inside `()` and `[]` are ignored, as in Python.
 
 ### Multi-line strings

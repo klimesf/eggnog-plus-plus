@@ -1,6 +1,9 @@
 //! Source text → tokens, including INDENT/DEDENT, line continuation and
 //! triple-quoted strings.
 
+/// Spaces per indentation level; any other step is an error.
+const INDENT: usize = 2;
+
 use std::rc::Rc;
 
 use crate::error::{Error, Result, Span};
@@ -175,7 +178,8 @@ impl<'a> Lexer<'a> {
         Ok(self.tokens)
     }
 
-    /// Handles indentation at the start of a line. Returns false at the end of input.
+    /// Handles indentation at the start of a line. Every level is exactly
+    /// `INDENT` spaces, so code is indented the same way everywhere. Returns false at the end of input.
     fn line_start(&mut self) -> Result<bool> {
         let begin = self.pos;
         let mut width = 0;
@@ -204,7 +208,15 @@ impl<'a> Lexer<'a> {
                 return Ok(true);
             }
             Some(b'.') if self.peek_at(1) != Some(b'.') => {
-                // `.method()` continues the previous line's expression.
+                // `.method()` continues the previous line's expression, one
+                // step deeper than the statement it continues.
+                let top = *self.indents.last().unwrap();
+                if width != top + INDENT {
+                    return Err(Error::lex(
+                        format!("indent a `.method()` line {INDENT} spaces deeper than its statement (found {width}, expected {})", top + INDENT),
+                        Span::new(begin, self.pos.max(begin + 1)),
+                    ));
+                }
                 self.pending_newline = false;
                 self.at_line_start = false;
                 self.line_has_tokens = true;
@@ -218,6 +230,12 @@ impl<'a> Lexer<'a> {
         }
         let top = *self.indents.last().unwrap();
         if width > top {
+            if width != top + INDENT {
+                return Err(Error::lex(
+                    format!("indent a block {INDENT} spaces deeper than the line that opens it (found {width}, expected {})", top + INDENT),
+                    Span::new(begin, self.pos.max(begin + 1)),
+                ));
+            }
             self.indents.push(width);
             self.push_raw(Tok::Indent, begin, self.pos);
         } else if width < top {

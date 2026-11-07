@@ -1,7 +1,7 @@
 fun hash(word: string) -> int:
   word.chars()
-  .scan(0, (current_value, c) => (current_value + c as int) * 17 % 256)
-  .last()
+    .scan(0, (current_value, c) => (current_value + c as int) * 17 % 256)
+    .last()
 
 let boxes = [[]] * 256
 
