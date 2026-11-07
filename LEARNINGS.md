@@ -27,6 +27,10 @@ In a graph search, two arrivals are the same node only if every future move is t
 
 Estimate the work before optimizing: number of states × work per state. 2023 d17 has about 240,000 states; at ~1 µs per statement in the reference interpreter, 2–3 s is simply that cost.
 
+## Generate the candidates instead of filtering them all
+
+When most of a range fails one cheap rule, build only the values that pass it, and keep the full definition as the filter. In 2019 d4 only about 3,000 of the 541,000 numbers have digits that never go down; a recursion where each digit starts from the previous one builds just those, and the run went from 1.29 s to 24 ms. Keep the full check (`meets`, written like the puzzle text) even though the generator already enforces part of it: the examples then test the rules directly, the repeated check is cheap on the few candidates, and the answer stays right as long as the generator never *misses* a valid value. Producing extra candidates would only cost time.
+
 ## Don't simulate what you can compute
 
 - **Huge repetition counts** (2023 d14, a billion cycles): find where the state repeats and jump ahead with `%`. Save each step's answer as you go, so you don't have to replay the cycles to reach it.

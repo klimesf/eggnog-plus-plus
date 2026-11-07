@@ -1,0 +1,21 @@
+fun meets(password: int) -> bool:
+  let digits = password.digits().to_list()
+  if digits.windows(2).any([a, b] => a > b): return false
+  # non-decreasing, the same digits can only be next to each other
+  digits.any(d => digits.count(d) == 2)
+
+# generates a list of non-decreasing passwords
+fun generate(password: int, len: int) -> [int]:
+  if len == 6: return [password]
+  let last = password % 10
+  (last..=9).flat_map(generate(password * 10 + it, len + 1)).to_list()
+
+let [from, to] = input.ints().to_list()
+(1..=9).flat_map(generate(it, 1)).count(from <= it and it <= to and meets(it))
+
+test "meets":
+  assert meets(112233) == true
+  assert meets(123444) == false
+  assert meets(111122) == true
+
+test file("input.txt") == 1319
