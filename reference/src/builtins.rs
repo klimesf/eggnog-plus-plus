@@ -699,7 +699,38 @@ fn parse_grid(s: &str, digits: bool, span: Span) -> Result<Value> {
     Ok(Value::Grid(Rc::new(GridV { rows: rows as i64, cols: cols as i64, cells })))
 }
 
+/// The most arguments (positional and named together) a non-mutating method
+/// takes. Each method still checks its own names; this catches the methods
+/// that would otherwise ignore an extra argument, like `to_map(f)`.
+fn max_method_args(name: &str) -> Option<usize> {
+    Some(match name {
+        "lines" | "ints" | "digits" | "chars" | "to_char_grid" | "to_digit_grid" | "is_digit" | "is_letter" | "digit"
+        | "dir" | "len" | "is_empty" | "top" | "keys" | "values" | "rows" | "cols" | "positions" | "print" | "rev"
+        | "sum" | "product" | "first" | "last" | "to_list" | "to_set" | "to_map" | "permutations" => 0,
+        "map" | "filter" | "flat_map" | "any" | "all" | "count" | "position" | "find" | "find_last" | "zip"
+        | "intersection" | "take" | "skip" | "windows" | "chunks" | "combinations" | "neighbors4" | "neighbors8"
+        | "split" | "split_once" | "int" | "to_string" | "enumerate" | "min" | "max" => 1,
+        "to_sorted" | "starts_with" | "scan" => 2,
+        _ => return None,
+    })
+}
+
 pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span) -> Result<Value> {
+    if let Some(max) = max_method_args(name) {
+        let got = a.pos.len() + a.named.len();
+        if got > max {
+            let takes = match max {
+                0 => "no arguments".to_string(),
+                1 => "1 argument".to_string(),
+                n => format!("{n} arguments"),
+            };
+            let hint = match name {
+                "to_map" | "to_list" | "to_set" => "; to change the elements first, use `.map(…)` before it",
+                _ => "",
+            };
+            return Err(Error::runtime(format!("`{name}` takes {takes}, got {got}{hint}"), span));
+        }
+    }
     // Type-specific methods first.
     match (&recv, name) {
         (Value::Str(s), "len") => return Ok(Value::Int(s.len() as i64)),
