@@ -123,8 +123,10 @@ fn op_symbol(op: BinOp) -> &'static str {
 pub fn binary(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
     use BinOp::*;
     match op {
-        Eq => Ok(Value::Bool(a == b)),
-        Ne => Ok(Value::Bool(a != b)),
+        Eq | Ne => {
+            check_same_type(&a, &b, span)?;
+            Ok(Value::Bool((a == b) == (op == Eq)))
+        }
         Lt | Le | Gt | Ge => {
             let o = a
                 .compare(&b)
@@ -235,12 +237,71 @@ fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
 
 // ---- membership and indexing --------------------------------------------------
 
+/// `==` and `!=` only compare values of the same type: `grid[p] == 1` on a
+/// grid of chars is a mistake, not `false`.
+pub fn check_same_type(a: &Value, b: &Value, span: Span) -> Result<()> {
+    if a.same_type(b) {
+        Ok(())
+    } else {
+        Err(Error::runtime(format!("can't compare {} with {}", describe_shape(a), describe_shape(b)), span))
+    }
+}
+
+/// Like `describe`, but shows short tuples and lists, whose kind alone
+/// doesn't say what differs: "can't compare (1, 2) with (1, 2, 3)".
+fn describe_shape(v: &Value) -> String {
+    match v {
+        Value::Tuple(_) | Value::List(_) => {
+            let r = v.repr();
+            if r.len() <= 30 { r } else { describe(v) }
+        }
+        _ => describe(v),
+    }
+}
+
+/// Checks `item` against one element of the collection, as a stand-in for
+/// the type checker.
+fn check_element<'a>(mut elems: impl Iterator<Item = &'a Value>, item: &Value, span: Span) -> Result<()> {
+    match elems.next() {
+        Some(e) if !e.same_type(item) => {
+            Err(Error::runtime(format!("can't look for {} among elements like {}", describe_shape(item), describe_shape(e)), span))
+        }
+        _ => Ok(()),
+    }
+}
+
 pub fn contains(coll: &Value, item: &Value, span: Span) -> Result<bool> {
     Ok(match coll {
-        Value::List(xs) | Value::Tuple(xs) | Value::Stack(xs) => xs.contains(item),
-        Value::Queue(q) => q.contains(item),
-        Value::Set(s) => s.contains(item),
-        Value::Map(m) => m.map.contains_key(item),
+        Value::List(xs) | Value::Stack(xs) => {
+            check_element(xs.iter(), item, span)?;
+            xs.contains(item)
+        }
+        Value::Tuple(xs) => {
+            // A tuple may mix types; look only among the elements of the item's type.
+            if !xs.iter().any(|x| x.same_type(item)) {
+                return Err(Error::runtime(format!("can't look for {} in a tuple with no element of its type", describe_shape(item)), span));
+            }
+            xs.contains(item)
+        }
+        Value::Queue(q) => {
+            check_element(q.iter(), item, span)?;
+            q.contains(item)
+        }
+        // Finding a hash table's first element scans its slots from the start,
+        // so sample only a table that's at least a quarter full: one emptied
+        // by removals would make every `in` cost its whole capacity.
+        Value::Set(s) => {
+            if s.len() * 4 >= s.capacity() {
+                check_element(s.iter(), item, span)?;
+            }
+            s.contains(item)
+        }
+        Value::Map(m) => {
+            if m.map.len() * 4 >= m.map.capacity() {
+                check_element(m.map.keys(), item, span)?;
+            }
+            m.map.contains_key(item)
+        }
         Value::Str(s) => match item {
             Value::Char(c) => s.as_bytes().contains(c),
             Value::Str(sub) => s.contains(&**sub),
@@ -252,7 +313,7 @@ pub fn contains(coll: &Value, item: &Value, span: Span) -> Result<bool> {
         },
         Value::Range { start, end } => match item {
             Value::Int(n) => start.is_none_or(|s| *n >= s) && end.is_none_or(|e| *n < e),
-            _ => false,
+            _ => return Err(Error::runtime(format!("can't look for {} in a range of ints", describe(item)), span)),
         },
         Value::Chain(_) => return Err(Error::runtime("`in` doesn't work on a chain; use .any(x => x == …)", span)),
         other => return Err(Error::runtime(format!("`in` doesn't work on {}", describe(other)), span)),
@@ -904,7 +965,10 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
                 let hit = match &pred {
                     None => true,
                     Some(f @ Value::Lambda(_)) => truth(s.call_value(f, vec![v], span)?, "count", span)?,
-                    Some(x) => &v == x,
+                    Some(x) => {
+                        check_same_type(&v, x, span)?;
+                        &v == x
+                    }
                 };
                 if hit {
                     n += 1;

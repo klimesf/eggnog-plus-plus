@@ -613,7 +613,10 @@ impl Interp {
                     format!("`{}` has fields; write `{}({})` to match it", def.name(), def.name(), vec!["_"; def.variant().fields.len()].join(", ")),
                     e.span,
                 )),
-                p => Ok((&p == v).then(Vec::new)),
+                p => {
+                    builtins::check_same_type(v, &p, e.span)?;
+                    Ok((&p == v).then(Vec::new))
+                }
             },
             MatchPat::Variant { name, binds, span } => {
                 let def = match self.lookup(name) {

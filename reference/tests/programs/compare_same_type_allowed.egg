@@ -1,0 +1,5 @@
+enum Light:
+  Off
+  On(level: int)
+let empty = [1].filter(it > 5).to_list()
+([1] == empty, (1, 'a') == (1, 'a'), 'a' in "abc", On(1) != Off, [(0, 0)].count((0, 0)), 3 in (1, 'x', 3))

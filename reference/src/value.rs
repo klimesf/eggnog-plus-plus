@@ -239,6 +239,34 @@ impl Value {
         }
     }
 
+    /// Could these two values have the same type? Used to reject `==`, `in`
+    /// and `count(x)` across types. There's no type checker, so containers
+    /// are judged by kind plus one sample element, like signature checks.
+    pub fn same_type(&self, other: &Value) -> bool {
+        fn sample<'a>(mut a: impl Iterator<Item = &'a Value>, mut b: impl Iterator<Item = &'a Value>) -> bool {
+            match (a.next(), b.next()) {
+                (Some(x), Some(y)) => x.same_type(y),
+                _ => true,
+            }
+        }
+        match (self, other) {
+            (Value::Unit, Value::Unit)
+            | (Value::Int(_), Value::Int(_))
+            | (Value::Bool(_), Value::Bool(_))
+            | (Value::Char(_), Value::Char(_))
+            | (Value::Str(_), Value::Str(_))
+            | (Value::Range { .. }, Value::Range { .. }) => true,
+            (Value::Tuple(a), Value::Tuple(b)) => a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| x.same_type(y)),
+            (Value::List(a), Value::List(b)) | (Value::Stack(a), Value::Stack(b)) => sample(a.iter(), b.iter()),
+            (Value::Set(a), Value::Set(b)) => sample(a.iter(), b.iter()),
+            (Value::Queue(a), Value::Queue(b)) => sample(a.iter(), b.iter()),
+            (Value::Grid(a), Value::Grid(b)) => sample(a.cells.iter(), b.cells.iter()),
+            (Value::Map(a), Value::Map(b)) => sample(a.map.keys(), b.map.keys()) && sample(a.map.values(), b.map.values()),
+            (Value::Record(da, _), Value::Record(db, _)) => Rc::ptr_eq(&da.decl, &db.decl),
+            _ => false,
+        }
+    }
+
     /// Total order used by `<`, `min`, `max` and sorting.
     pub fn compare(&self, other: &Value) -> Option<Ordering> {
         match (self, other) {

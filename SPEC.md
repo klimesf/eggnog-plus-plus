@@ -20,6 +20,10 @@ A type is written the way its values look where there is a literal for them, and
 
 Types appear only after `:` in a parameter and after `->`, so `[int]` never clashes with a list expression like `[x] * n`.
 
+### Comparing values
+
+`==` and `!=` compare only two values of the same type; anything else is a compile error, as it is for `<`. That includes `int` with `char`: `grid[p] == 1` on a `Grid<char>` is a mistake, not `false`, so write `grid[p] == '1'` or convert with `grid[p] - '0'`. The same holds wherever values are compared implicitly: `x in xs` needs an `x` of the element type (the key type for a `Map`, an `int` for a range), and so do `xs.count(x)` and the literal patterns of a `match`. Silently returning `false` hid a bug while measuring 2019 d4: `xs.count(true)` on ints counts elements equal to `true` and gives 0.
+
 ### Numbers
 
 - `int` is a signed 64-bit integer and `float` is a 64-bit IEEE float. There are no other numeric types for now.

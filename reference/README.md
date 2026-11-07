@@ -41,6 +41,10 @@ trailing newline is stripped, as the spec says.
   A named test that doesn't define a script variable its functions use fails
   only when that use runs (with a hint naming the variable), and the type of
   the test's replacement isn't checked.
+  `==`, `in`, `count(x)` and `match` literals between different types fail
+  when they run, judged like signatures (kind plus one sample element), so
+  `[1, 2] == ['a']` is caught but an empty container matches anything, and
+  `in` skips the check on a Set or Map that removals left mostly empty.
   The memo rule "don't change a captured variable after the `memo fun` is
   defined" is **not** checked.
 - **No floats** yet.
