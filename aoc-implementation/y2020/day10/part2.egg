@@ -6,8 +6,8 @@ adapters.sort()
 memo fun arrangements(pos: int) -> int:
   if pos == adapters.len() - 1: return 1
   (pos + 1..=pos + 3)
-    .filter(i => i < adapters.len() and adapters[i] - adapters[pos] <= 3)
-    .map(i => arrangements(i))
+    .filter(it < adapters.len() and adapters[it] - adapters[pos] <= 3)
+    .map(arrangements(it))
     .sum()
 
 arrangements(0)

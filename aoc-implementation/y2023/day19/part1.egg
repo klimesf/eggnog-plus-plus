@@ -23,8 +23,6 @@ fun accepts(workflow: string, part: [int]) -> bool:
       _: true
     if accepted: return accepts(next, part)
 
-  panic("no rule applies")
-
 parts.lines()
   .map(it.ints().to_list())
   .filter(accepts("in", it))

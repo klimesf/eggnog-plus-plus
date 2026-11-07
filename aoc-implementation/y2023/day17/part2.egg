@@ -15,8 +15,6 @@ while ((pos, dir, blocks), heat_loss) = queue.pop():
     if dir != nd and blocks < 4 or dir == nd and blocks == 10: continue
     queue.push((np, nd, if dir == nd then blocks + 1 else 1), heat_loss + grid[np])
 
-panic("no path found to machine parts factory")
-
 test """
 2413432311323
 3215453535623

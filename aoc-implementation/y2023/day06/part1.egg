@@ -1,6 +1,6 @@
 let (time, distance) = input.split_once("\n")
 time.ints().zip(distance.ints())
-  .map((t, d) => (0..=t).map((t - it) * it).filter(it > d).count())
+  .map((t, d) => (0..=t).map((t - it) * it).count(it > d))
   .product()
 
 test """

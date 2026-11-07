@@ -9,7 +9,6 @@ fun eval_round(line: string) -> int:
     "C X": 1 + 6
     "C Y": 2 + 0
     "C Z": 3 + 3
-    _: panic("unknown combination")
 
 input.lines()
   .map(eval_round(it))

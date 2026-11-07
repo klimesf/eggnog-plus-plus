@@ -30,9 +30,7 @@ while pos = queue.pop():
   for n in grid2x.neighbors4(pos): queue.push(n)
 
 # count anything from the small grid that the BFS did not touch
-grid.positions()
-  .filter(grid2x[2 * it] == '.')
-  .count()
+grid.positions().count(grid2x[2 * it] == '.')
 
 test """
 ...........

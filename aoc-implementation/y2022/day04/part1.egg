@@ -1,7 +1,6 @@
 input.lines()
   .map(line => line.ints().to_list())
-  .filter([a, b, c, d] => a <= c and b >= d or c <= a and d >= b)
-  .count()
+  .count([a, b, c, d] => a <= c and b >= d or c <= a and d >= b)
 
 test """
 2-4,6-8

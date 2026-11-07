@@ -10,7 +10,7 @@ let empty_cols = (0..grid.cols())
 
 fun expand(star: (int, int)) -> (int, int):
   let (r, c) = star
-  (r + empty_rows.filter(it < r).count() * 999999, c + empty_cols.filter(it < c).count() * 999999)
+  (r + empty_rows.count(it < r) * 999999, c + empty_cols.count(it < c) * 999999)
 
 let stars = grid.positions()
   .filter(grid[it] == '#')

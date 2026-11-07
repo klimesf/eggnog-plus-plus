@@ -6,15 +6,15 @@ From the 2026-11-06 review against ELEGANCE.md and LEARNINGS.md.
 
 ## Built-ins (rule 3)
 
-- [ ] `.filter(p).count()` → `.count(p)`: 2022 d4 (both parts), 2023 d6 part 1, 2023 d10 part 2, 2023 d11 (both parts).
-- [ ] 2022 d6 (both parts): `enumerate().filter().map().first()` → `.position(…)`.
-- [ ] 2023 d1 part 2: the `ans +=` loop over lines → `.map(…).sum()`.
+- [x] `.filter(p).count()` → `.count(p)`: 2022 d4 (both parts), 2023 d6 part 1, 2023 d10 part 2, 2023 d11 (both parts).
+- [x] 2022 d6 (both parts): `enumerate().filter().map().first()` → `.position(…)`.
+- [x] 2023 d1 part 2: the `ans +=` loop over lines → `.map(…).sum()`.
 
 ## Delete what does nothing (rule 8)
 
-- [ ] 2023 d17 (both parts): the `panic` after the search.
-- [ ] 2023 d19 part 1: `panic("no rule applies")`; the last rule always applies.
-- [ ] 2022 d2 (both parts): `_: panic(…)`; a `match` with no matching arm already stops.
+- [x] 2023 d17 (both parts): the `panic` after the search.
+- [x] 2023 d19 part 1: `panic("no rule applies")`; the last rule always applies.
+- [x] 2022 d2 (both parts): `_: panic(…)`; a `match` with no matching arm already stops.
 
 ## Shapes (rules 14 and 15)
 
@@ -25,11 +25,11 @@ From the 2026-11-06 review against ELEGANCE.md and LEARNINGS.md.
 ## Each case once, names (rules 2 and 5)
 
 - [ ] 2023 d2 part 2: three identical `match` arms → one `Map(default = 0)` of the fewest cubes per color.
-- [ ] 2023 d6 part 2: `let dist = distance…` → keep the name `distance`, like `time`.
+- [x] 2023 d6 part 2: `let dist = distance…` → keep the name `distance`, like `time`.
 
 ## Consistency and formatting
 
-- [ ] `.map(i => arrangements(i))` (2020 d10 part 2) and `.map(c => priority(c))` (2022 d3 part 1) → `(it)`.
-- [ ] 2023 d15 part 2: indent the `hash` chain; trailing whitespace after it.
-- [ ] 2023 d5 part 2: trailing whitespace after `apply_map`.
-- [ ] 2022 d12 part 2: 6-space indent in the `for` body.
+- [x] `.map(i => arrangements(i))` (2020 d10 part 2) and `.map(c => priority(c))` (2022 d3 part 1) → `(it)`.
+- [x] 2023 d15 part 2: indent the `hash` chain; trailing whitespace after it.
+- [x] 2023 d5 part 2: trailing whitespace after `apply_map`.
+- [x] 2022 d12 part 2: 6-space indent in the `for` body.

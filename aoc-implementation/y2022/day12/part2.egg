@@ -10,7 +10,7 @@ while (pos, dist) = queue.pop():
   if grid[pos] == 'a':
     return dist
   for n in grid.neighbors4(pos).filter(grid[pos] - grid[it] <= 1):
-      if seen.add(n): queue.push((n, dist + 1))
+    if seen.add(n): queue.push((n, dist + 1))
 
 test """
 Sabqponm

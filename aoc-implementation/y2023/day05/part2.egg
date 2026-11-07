@@ -10,7 +10,7 @@ fun apply_map(ranges: [(int, int)], map: string) -> [(int, int)]:
       start = to
     if start < end: next.push((start, end)) # gap after all maps stays unchanged
   next
-      
+
 let (seeds, maps) = input.split_once("\n\n")
 maps.split("\n\n")
   .scan(seeds.ints().chunks(2).map([start, length] => (start, start + length)).to_list(),
