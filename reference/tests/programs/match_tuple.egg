@@ -1,0 +1,18 @@
+enum Data:
+  Integer(value: int)
+  List(values: [Data])
+
+fun kind(a: Data, b: Data) -> string:
+  match (a, b):
+    (Integer(x), Integer(y)): "ints " + (x + y).to_string()
+    (Integer(_), List(_)): "int, list"
+    (List(_), Integer(_)): "list, int"
+    (List(xs), List(ys)): "lists " + (xs.len() + ys.len()).to_string()
+
+fun step(dir: (int, int), c: char) -> (int, int):
+  match (c, dir):
+    ('/', (0, 1)): Up
+    ('/', _): Down
+    (_, _): dir
+
+(kind(Integer(1), Integer(2)), kind(Integer(1), List([])), kind(List([]), Integer(1)), kind(List([Integer(1)]), List([])), step(Right, '/'), step(Left, '/'), step(Left, '.'))

@@ -1,0 +1,8 @@
+enum Data:
+  Integer(value: int)
+  List(values: [Data])
+
+match (Integer(1), List([])):
+  (Integer(_), Integer(_)): 1
+  (Integer(_), List(_)): 2
+  (List(_), List(_)): 3

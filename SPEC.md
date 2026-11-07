@@ -379,10 +379,19 @@ match c:
   _: panic("unknown char")
 ```
 
-- Arms are `pattern: body`. The body goes on the same line or in an indented block. Patterns for now: literals, constants and variants without fields (`Up:`, `Noop:`), variant patterns that bind fields (`Addx(n):`, see Structs and enums), and `_`.
+- Arms are `pattern: body`. The body goes on the same line or in an indented block. Patterns for now: literals, constants and variants without fields (`Up:`, `Noop:`), variant patterns that bind fields (`Addx(n):`, see Structs and enums), tuple patterns, and `_`. A bare lowercase name is not a pattern; only variant fields bind names.
 - The first matching arm runs, with no fallthrough. `break`/`continue` inside an arm apply to the enclosing loop. If no arm matches, the program traps.
 - `match` can also be an expression when every arm is a single expression: `let step = match c:` followed by arms like `'(': 1`.
-- Guards, nested variant patterns and tuple patterns are not designed yet.
+- **Tuple patterns** match a tuple element by element, each element with any pattern above, so two values can be matched at once (2022 d13):
+  ```
+  match (a, b):
+    (Integer(x), Integer(y)): x - y
+    (Integer(_), List(_)): compare(List([a]), b)
+    (List(_), Integer(_)): compare(a, List([b]))
+    (List(xs), List(ys)): compare_lists(xs, ys)
+  ```
+  Exhaustiveness covers every combination of variants, so leaving out `(List(_), Integer(_))` is a compile error. Positions that aren't enums need no arm, as in a `match` on ints. `(p)` is just `p`; a tuple pattern has a comma.
+- Guards and nested variant patterns (`List(Integer(x))`) are not designed yet.
 
 ### Line continuation
 

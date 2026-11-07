@@ -24,6 +24,14 @@ fn wrap_it(e: &mut Expr) {
     *e = Expr { kind: ExprKind::Lambda(Rc::new(Lambda { params: vec![Pattern::Name("it".into())], body })), span };
 }
 
+fn pat_uses_it(p: &MatchPat) -> bool {
+    match p {
+        MatchPat::Value(e) => uses_it(e),
+        MatchPat::Tuple(ps, _) => ps.iter().any(pat_uses_it),
+        MatchPat::Wild | MatchPat::Variant { .. } => false,
+    }
+}
+
 fn uses_it(e: &Expr) -> bool {
     match &e.kind {
         ExprKind::Var(n) => &**n == "it",
@@ -40,7 +48,7 @@ fn uses_it(e: &Expr) -> bool {
         ExprKind::Field { recv, .. } => uses_it(recv),
         ExprKind::IfElse(c, a, b) => uses_it(c) || uses_it(a) || uses_it(b),
         ExprKind::Match(x, arms) => {
-            uses_it(x) || arms.iter().any(|(p, v)| matches!(p, MatchPat::Value(pv) if uses_it(pv)) || uses_it(v))
+            uses_it(x) || arms.iter().any(|(p, v)| pat_uses_it(p) || uses_it(v))
         }
     }
 }
@@ -397,6 +405,26 @@ impl<'a> Parser<'a> {
     }
 
     fn match_pat(&mut self) -> Result<MatchPat> {
+        if self.peek() == &Tok::LParen {
+            // `(p, q)` is a tuple of patterns; `(p)` is just `p`.
+            let start = self.span();
+            self.advance();
+            let mut elems = Vec::new();
+            let mut comma = false;
+            while !self.eat(&Tok::RParen) {
+                elems.push(self.match_pat()?);
+                if self.eat(&Tok::Comma) {
+                    comma = true;
+                } else {
+                    self.expect(&Tok::RParen, "`,` or `)`")?;
+                    break;
+                }
+            }
+            if elems.len() == 1 && !comma {
+                return Ok(elems.pop().unwrap());
+            }
+            return Ok(MatchPat::Tuple(elems, start.to(self.prev_span())));
+        }
         if let Tok::Ident(n) = self.peek().clone() {
             if &*n == "_" {
                 self.advance();

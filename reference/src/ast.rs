@@ -60,6 +60,8 @@ pub enum MatchPat {
     Value(Expr),
     /// `Addx(n):` binds a variant's fields by position.
     Variant { name: Name, binds: Vec<Pattern>, span: Span },
+    /// `(List(x), Integer(_)):` matches a tuple element by element.
+    Tuple(Vec<MatchPat>, Span),
 }
 
 /// A `struct` (one variant named like the type) or an `enum`.

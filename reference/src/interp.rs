@@ -642,6 +642,23 @@ impl Interp {
                 }
                 Ok(Some(binds.iter().cloned().zip(fields.iter().cloned()).collect()))
             }
+            MatchPat::Tuple(pats, span) => {
+                let elems = match v {
+                    Value::Tuple(t) if t.len() == pats.len() => t.clone(),
+                    Value::Tuple(t) => {
+                        return Err(Error::runtime(format!("can't match a tuple of {} against a pattern of {}", t.len(), pats.len()), *span))
+                    }
+                    _ => return Err(Error::runtime(format!("can't match {} against a tuple pattern", describe(v)), *span)),
+                };
+                let mut binds = Vec::new();
+                for (p, e) in pats.iter().zip(elems.iter()) {
+                    match self.match_pat(p, e)? {
+                        Some(b) => binds.extend(b),
+                        None => return Ok(None),
+                    }
+                }
+                Ok(Some(binds))
+            }
         }
     }
 
@@ -657,26 +674,28 @@ impl Interp {
     }
 
     /// A `match` on an enum value without `_` must name every variant.
+    /// Every variant of an enum must be handled, also inside a tuple subject,
+    /// where every combination counts: `(List, Integer)` as well as
+    /// `(Integer, List)`. Ints, chars and the like need no `_` (no match traps).
     fn check_exhaustive<'p>(&mut self, pats: impl Iterator<Item = &'p MatchPat>, v: &Value, span: Span) -> Result<()> {
-        let Value::Record(def, _) = v else { return Ok(()) };
-        if def.decl.is_struct {
-            return Ok(());
-        }
-        let mut covered: Vec<&Name> = Vec::new();
-        for p in pats {
-            match p {
-                MatchPat::Wild => return Ok(()),
-                MatchPat::Variant { name, .. } => covered.push(name),
-                MatchPat::Value(Expr { kind: ExprKind::Var(name), .. }) => covered.push(name),
-                MatchPat::Value(_) => {}
+        let pats: Vec<&MatchPat> = pats.collect();
+        let mut missing = Vec::new();
+        for case in cases_of(v) {
+            if !pats.iter().any(|p| covers(p, &case)) {
+                missing.push(case.show());
+                if missing.len() == 5 {
+                    break;
+                }
             }
         }
-        let missing: Vec<String> =
-            def.decl.variants.iter().filter(|v| !covered.contains(&&v.name)).map(|v| format!("`{}`", v.name)).collect();
         if missing.is_empty() {
             return Ok(());
         }
-        Err(Error::runtime(format!("this match doesn't handle {} of `{}` (add the arms, or `_`)", missing.join(", "), def.decl.name), span))
+        let of = match v {
+            Value::Record(def, _) => format!(" of `{}`", def.decl.name),
+            _ => String::new(),
+        };
+        Err(Error::runtime(format!("this match doesn't handle {}{of} (add the arms, or `_`)", missing.join(", ")), span))
     }
 
     fn truthy(&mut self, e: &Expr) -> Result<bool> {
@@ -1330,5 +1349,81 @@ pub fn describe(v: &Value) -> String {
         Value::Int(_) | Value::Char(_) | Value::Bool(_) => format!("{} {}", v.type_name(), v.repr()),
         Value::Str(s) if s.len() <= 20 => format!("string {}", v.repr()),
         _ => format!("a {}", v.type_name()),
+    }
+}
+
+/// One kind of value a `match` must handle: an enum variant, a tuple of
+/// cases, or anything else (which needs no arm).
+enum Case {
+    Variant(Name),
+    Tuple(Vec<Case>),
+    Other,
+}
+
+impl Case {
+    fn show(&self) -> String {
+        match self {
+            Case::Variant(n) => format!("`{n}`"),
+            Case::Tuple(cs) => format!("`({})`", cs.iter().map(|c| c.show().trim_matches('`').to_string()).collect::<Vec<_>>().join(", ")),
+            Case::Other => "_".to_string(),
+        }
+    }
+}
+
+/// The cases of `v`'s type. Tuples give every combination of their elements'
+/// cases; more than 1,000 combinations are not checked.
+fn cases_of(v: &Value) -> Vec<Case> {
+    match v {
+        Value::Record(def, _) if !def.decl.is_struct => def.decl.variants.iter().map(|x| Case::Variant(x.name.clone())).collect(),
+        Value::Tuple(elems) => {
+            let mut combos: Vec<Vec<Case>> = vec![Vec::new()];
+            for e in elems.iter() {
+                let cs = cases_of(e);
+                if combos.len() * cs.len() > 1000 {
+                    return vec![Case::Other];
+                }
+                let mut next = Vec::new();
+                for combo in &combos {
+                    for c in &cs {
+                        let mut row: Vec<Case> = combo.iter().map(Case::clone_shallow).collect();
+                        row.push(c.clone_shallow());
+                        next.push(row);
+                    }
+                }
+                combos = next;
+            }
+            combos.into_iter().map(Case::Tuple).collect()
+        }
+        _ => vec![Case::Other],
+    }
+}
+
+impl Case {
+    fn clone_shallow(&self) -> Case {
+        match self {
+            Case::Variant(n) => Case::Variant(n.clone()),
+            Case::Tuple(cs) => Case::Tuple(cs.iter().map(Case::clone_shallow).collect()),
+            Case::Other => Case::Other,
+        }
+    }
+
+    /// Does this case involve an enum anywhere?
+    fn has_enum(&self) -> bool {
+        match self {
+            Case::Variant(_) => true,
+            Case::Tuple(cs) => cs.iter().any(Case::has_enum),
+            Case::Other => false,
+        }
+    }
+}
+
+fn covers(p: &MatchPat, case: &Case) -> bool {
+    match (p, case) {
+        (MatchPat::Wild, _) | (_, Case::Other) => true,
+        (MatchPat::Variant { name, .. }, Case::Variant(n)) => name == n,
+        (MatchPat::Value(Expr { kind: ExprKind::Var(name), .. }), Case::Variant(n)) => name == n,
+        (MatchPat::Tuple(ps, _), Case::Tuple(cs)) => ps.len() == cs.len() && ps.iter().zip(cs).all(|(p, c)| covers(p, c)),
+        (MatchPat::Value(_), Case::Tuple(cs)) => !cs.iter().any(Case::has_enum),
+        _ => false,
     }
 }
