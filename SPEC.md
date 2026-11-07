@@ -337,6 +337,8 @@ memo fun blink(stone: int, blinks: int) -> int:
 
 A `let` inside a block can't reuse the name of a variable from an enclosing block of the same script, function or lambda body; it's a compile error. Since all variables are mutable, `let total = …` inside a loop is almost always a mistake for `total = …`, which would otherwise leave the outer `total` silently unchanged. Only `let` is affected: `for` variables, conditional bindings (`if x = …:`) and lambda parameters may reuse outer names (`energized.map((pos, _) => pos)`). A function or lambda body starts fresh, so a function's local `grid` may share its name with a script-level `grid`.
 
+A variable may take the name of a function or a built-in: `let input = input` makes a changeable copy (the Intcode library). From the `let` to the end of its block, the name means the variable, so calling it there is a compile error (`let min = 3` then `min(1, 2)`). In particular, a recursive function whose local takes its own name can't call itself after that line. As style, a function's result is better named for what it holds than after the function (`fun ancestors_of(object)` with `let ancestors = Set()`, 2019 d6).
+
 ### Blocks
 
 Blocks are defined by indentation, Python style. A line that opens a block ends with `:`. A short body can go on the same line after the colon (`if done: break`).

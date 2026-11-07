@@ -31,8 +31,9 @@ trailing newline is stripped, as the spec says.
   and variant fields are checked when a value is built.
 - **Runtime checks instead of compile-time ones.** Storing a chain, writing to
   a read-only parameter, `&` on a non-`inout` parameter, indexing a tuple,
-  joining lists with `+`, using a block `if` as a value, and a `let` that hides
-  a variable of an enclosing block are runtime errors (the last only when that
+  joining lists with `+`, using a block `if` as a value, calling a variable
+  that hides a function, and a `let` that hides a variable of an enclosing
+  block are runtime errors (the last only when that
   `let` runs). A `match` that misses an enum variant fails only when it runs
   on a value of that enum; a struct or variant name that clashes with a
   built-in, a function or another variant fails when the program starts.
