@@ -10,6 +10,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 
 - **Compiler written in Rust.** Self-hosting is an optional later milestone.
 - **Output:** a native macOS ARM64 executable. `eggnog build day12.egg` produces `./day12`, with no VM.
+- **`eggnog run` has no visible build step:** `eggnog run part1.egg input.txt` type-checks, compiles into memory with Cranelift's JIT (`cranelift-jit`) and runs at once, with no executable written. It's the only command needed while solving, so its speed from saving to the first output matters more than the fastest code: a whole solution should compile in milliseconds. Runtime errors (`panic`, failed `assert`, index out of bounds) report the source line and the call stack. `eggnog build` writes an executable only when one is wanted. Compiling here was weighed against keeping an interpreter for the edit-run loop (2026-11-08): the friction was the separate build step and waiting for builds, and both go away with this.
 - **Backend:** Cranelift (pure Rust, ARM64 backend, easy via Cargo). LLVM later only if benchmarks call for it.
 - **Syntax:** Rust-like keywords and types, Python-style indented blocks with `:`. No lifetimes or borrow checker. Structs and Rust-style enums, no methods or generics.
 - **Memory:** value semantics (assignment copies) and no freeing: allocation is a pointer bump, and the OS reclaims memory at exit. If a puzzle runs out of memory, free values when they're overwritten or go out of scope (every value has exactly one owner, so no reference counting).
@@ -22,7 +23,7 @@ Keep this file current, so a fresh context or a sub-agent can pick up from here.
 1. **Design on paper.** *(Done: SPEC.md.)*
 1b. **Solve varied AoC days in eggnog++** *(current)*. Filip writes solutions in `aoc-implementation/`, and they run on the reference interpreter. Claude checks each one against SPEC.md and challenges the design. Whatever turns out awkward gets decided into SPEC.md. This replaces the old "test on past AoC days" step: the language is tested on real puzzles while it's still cheap to change.
 2. **Interpreter in Rust** (`interpreter/`, written by Filip). Lexer, parser, AST, tree-walking evaluator, standard library in Rust. Done when it passes every `aoc-implementation/` test. Also serves as a reference for checking the compiler's output.
-3. **Native compiler.** Static type checker, then Cranelift codegen to ARM64 object files, linked with the system linker. Done when it passes every `aoc-implementation/` test. Open question for then: how compiled code passes values to the Rust runtime library (Rust generics can't cross a C ABI, so either one uniform 8-byte value representation, or a fixed set of instantiations). Benchmark against Filip's Rust AoC solutions.
+3. **Native compiler.** Static type checker, then Cranelift codegen to ARM64 object files, linked with the system linker. `eggnog run` uses the JIT (see Decisions), with line info kept for error messages. Done when it passes every `aoc-implementation/` test. Open question for then: how compiled code passes values to the Rust runtime library (Rust generics can't cross a C ABI, so either one uniform 8-byte value representation, or a fixed set of instantiations). Benchmark against Filip's Rust AoC solutions.
 
 ## How we work
 
