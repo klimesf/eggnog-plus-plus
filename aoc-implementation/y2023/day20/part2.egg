@@ -1,0 +1,45 @@
+enum Type:
+  Broadcaster
+  FlipFlop
+  Conjunction
+
+let types = Map()
+let cables = Map()
+let on = Map(default = false)
+let memory = Map(default = Map())
+for line in input.lines():
+  let (left, right) = line.split_once(" -> ")
+  let name = if left == "broadcaster" then left else left[1..]
+  let dests = right.split(", ").to_list()
+  cables[name] = dests
+  for d in dests: memory[d][name] = false
+  if left == "broadcaster": types[name] = Broadcaster
+  else if left.starts_with("%"): types[name] = FlipFlop
+  else: types[name] = Conjunction
+
+# by analysing the input, I found there is a conjunction leading to "rx"
+# this likely holds for all inputs
+let feeder = memory["rx"].keys().first()
+let periods = memory[feeder].keys().map((it, 0)).to_map()
+for i in 0..:
+  if periods.values().all(it > 0): break
+
+  let queue = Queue()
+  queue.push(("button", "broadcaster", false))
+  while (from, module, pulse) = queue.pop():
+    if module == feeder and pulse and periods[from] == 0: periods[from] = i + 1
+    if module !in types: continue
+    match types[module]:
+      Broadcaster: for d in cables[module]: queue.push((module, d, pulse))
+      FlipFlop:
+        if pulse: continue
+        for d in cables[module]: queue.push((module, d, !on[module]))
+        on[module] = !on[module]
+      Conjunction:
+        memory[module][from] = pulse
+        for d in cables[module]: queue.push((module, d, !memory[module].values().all(it)))
+
+# the periods have no offset so we can just do a simple lcm
+periods.values().scan(1, (acc, period) => lcm(acc, period)).last()
+
+test file("input.txt") == 246313604784977

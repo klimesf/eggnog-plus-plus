@@ -1,0 +1,55 @@
+enum Type:
+  Broadcaster
+  FlipFlop
+  Conjunction
+
+let types = Map()
+let cables = Map()
+let on = Map(default = false)
+let memory = Map(default = Map())
+for line in input.lines():
+  let (left, right) = line.split_once(" -> ")
+  let name = if left == "broadcaster" then left else left[1..]
+  let dests = right.split(", ").to_list()
+  cables[name] = dests
+  for d in dests: memory[d][name] = false
+  if left == "broadcaster": types[name] = Broadcaster
+  else if left.starts_with("%"): types[name] = FlipFlop
+  else: types[name] = Conjunction
+
+let low_pulses = 0
+let high_pulses = 0
+for _ in 0..1000:
+  let queue = Queue()
+  queue.push(("button", "broadcaster", false))
+  while (from, module, pulse) = queue.pop():
+    if pulse: high_pulses += 1
+    else: low_pulses += 1
+    if module !in types: continue
+    match types[module]:
+      Broadcaster: for d in cables[module]: queue.push((module, d, pulse))
+      FlipFlop:
+        if pulse: continue
+        for d in cables[module]: queue.push((module, d, !on[module]))
+        on[module] = !on[module]
+      Conjunction:
+        memory[module][from] = pulse
+        for d in cables[module]: queue.push((module, d, !memory[module].values().all(it)))
+
+low_pulses * high_pulses
+
+test """
+broadcaster -> a, b, c
+%a -> b
+%b -> c
+%c -> inv
+&inv -> a
+""" == 32000000
+test """
+broadcaster -> a
+%a -> inv, con
+&inv -> b
+%b -> con
+&con -> output
+""" == 11687500
+test file("input.txt") == 818649769
