@@ -1,0 +1,40 @@
+let input = input.ints().to_list()
+
+let reg_a = input[0]
+let reg_b = input[1]
+let reg_c = input[2]
+let program = input[3..]
+
+let ip = 0
+let output = []
+
+fun combo(operand: int) -> int:
+  match operand:
+    4: reg_a
+    5: reg_b
+    6: reg_c
+    _: operand
+
+while ip < program.len():
+  let (opcode, operand) = (program[ip], program[ip + 1])
+  ip += 2
+  match opcode:
+    0: reg_a = reg_a >> combo(operand)
+    1: reg_b = reg_b ^ operand
+    2: reg_b = combo(operand) & 7
+    3: if reg_a != 0: ip = operand
+    4: reg_b = reg_b ^ reg_c
+    5: output.push(combo(operand) & 7)
+    6: reg_b = reg_a >> combo(operand)
+    7: reg_c = reg_a >> combo(operand)
+
+output.to_string(sep = ",")
+
+test """
+Register A: 729
+Register B: 0
+Register C: 0
+
+Program: 0,1,5,4,3,0
+""" == "4,6,3,5,6,3,5,2,1,0"
+test file("input.txt") == "1,5,0,1,7,4,1,0,3"

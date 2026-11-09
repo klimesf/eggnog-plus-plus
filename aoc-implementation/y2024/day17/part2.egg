@@ -1,0 +1,53 @@
+let input = input.ints().to_list()
+let program = input[3..]
+
+fun run(a: int) -> [int]:
+  let reg_a = a
+  let reg_b = input[1]
+  let reg_c = input[2]
+
+  let ip = 0
+  let output = []
+
+  fun combo(operand: int) -> int:
+    match operand:
+      4: reg_a
+      5: reg_b
+      6: reg_c
+      _: operand
+
+  while ip < program.len():
+    let (opcode, operand) = (program[ip], program[ip + 1])
+    ip += 2
+    match opcode:
+      0: reg_a = reg_a >> combo(operand)
+      1: reg_b = reg_b ^ operand
+      2: reg_b = combo(operand) & 7
+      3: if reg_a != 0: ip = operand
+      4: reg_b = reg_b ^ reg_c
+      5: output.push(combo(operand) & 7)
+      6: reg_b = reg_a >> combo(operand)
+      7: reg_c = reg_a >> combo(operand)
+  output
+
+# Each output digit takes 3 bits off register A
+# We need to start searching from the end of the output because all bits of A influence the output
+fun search(a: int, pos: int) -> int:
+  if pos == 0: return a
+  for i in 0..8:
+    let candidate = (a << 3) + i
+    if run(candidate) != program[pos - 1..]: continue
+    let res = search(candidate, pos - 1)
+    if res > 0: return res
+  -1
+
+search(0, program.len())
+
+test """
+Register A: 2024
+Register B: 0
+Register C: 0
+
+Program: 0,3,5,4,3,0
+""" == 117440
+test file("input.txt") == 47910079998866
