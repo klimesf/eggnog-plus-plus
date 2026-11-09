@@ -35,6 +35,10 @@ When most of a range fails one cheap rule, build only the values that pass it, a
 
 Nested input (2022 d13 packets like `[1,[2,[3]]]`) parses most simply with a recursive function where each call reads exactly one value: a whole number, or a list whose loop calls the function once per element and stops at `]`. Pass the position as `inout` (`fun parse(packet: string, inout at: int) -> Data`), so each call moves it forward itself; returning `(value, position)` pairs makes every caller unpack and reassign. Check for `]` before reading an element, or `[]` gets parsed as a list holding an empty list. In d13, a loop condition `i < packet.len()` hid exactly that bug, and the tests still passed. Compared with a character loop that keeps a stack of open lists and a buffer for the digits, it's shorter, handles `[]` without a special case, and ran faster (34 ms vs 47 ms).
 
+## Search one digit at a time when the output is built digit by digit
+
+In 2024 d17 part 2, each loop of the program shifts A right by 3 and prints one number, so the output has one number per base-8 digit of A, and the last number sees only the top digit. Instead of trying every A, fix A's digits from the top: for each new digit try `0..8` and keep the ones whose output matches the end of the program. A digit that matches can still lead to a dead end, because the higher bits leak into later outputs, so it's a search with backtracking (a recursion), not a greedy pick; trying the digits in increasing order makes the first complete A the lowest. Check each candidate before recursing on it, not on entry, so the starting call needs no special case, and compare whole lists (`run(candidate) != program[pos - 1..]`), which also catches a wrong length.
+
 ## Don't simulate what you can compute
 
 - **Huge repetition counts** (2023 d14, a billion cycles): find where the state repeats and jump ahead with `%`. Save each step's answer as you go, so you don't have to replay the cycles to reach it.
