@@ -1,0 +1,89 @@
+import cramer, det4 from "algebra.egg"
+
+# xi + vxi * ti = X + VX * ti
+# yi + vyi * ti = Y + VY * ti
+# zi + vzi * ti = Z + VZ * ti
+
+# xj + vxj * tj = X + VX * tj
+# yj + vyj * tj = Y + VY * tj
+# zj + vzj * tj = Z + VZ * tj
+
+# vxi * ti - VX * ti = X - xi
+# ti (vxi - VX) = X - xi
+
+# vyi * ti - VY * ti = Y - yi
+# ti (vyi - VY) = Y - yi
+
+# multiply the second equation by (vxi - VX) and the first by (vyi - VY)
+# ti (vxi - VX) (vyi - VY) = (X - xi) (vyi - VY)
+# ti (vyi - VY) (vxi - VX) = (Y - yi) (vxi - VX)
+
+# the left sides are the same, so the right sides are equal
+# (X - xi) (vyi - VY) = (Y - yi) (vxi - VX)
+# X vyi - X VY - xi vyi + xi VY = Y vxi - Y VX - yi vxi + yi VX
+
+# the same holds for hailstone j
+# X vyj - X VY - xj vyj + xj VY = Y vxj - Y VX - yj vxj + yj VX
+
+# subtracting j from i
+# X vyi - X VY - xi vyi + xi VY - X vyj + X VY + xj vyj - xj VY = Y vxi - Y VX - yi vxi + yi VX - Y vxj + Y VX + yj vxj - yj VX
+# X vyi - xi vyi + xi VY - X vyj + xj vyj - xj VY = Y vxi - yi vxi + yi VX - Y vxj + yj vxj - yj VX
+# (vyi - vyj) X + (xi - xj) VY - xi vyi + xj vyj = (vxi - vxj) Y + (yi - yj) VX - yi vxi + yj vxj
+# (vyi - vyj) X - (vxi - vxj) Y - (yi - yj) VX + (xi - xj) VY = - yi vxi + yj vxj + xi vyi - xj vyj
+
+# now that we have this, we can build 4 equations for 4 variables
+let hailstones = input.lines().map(it.ints().to_list()).to_list()
+let [xi, yi, zi, vxi, vyi, vzi] = hailstones[0]
+let left_side = []
+let right_side = []
+for j in 1..5:
+  let [xj, yj, _, vxj, vyj, _] = hailstones[j]
+  left_side.push([vyi - vyj, vxj - vxi, yj - yi, xi - xj])
+  right_side.push(yj * vxj - yi * vxi + xi * vyi - xj * vyj)
+
+let d = det4(left_side)
+
+let vx_equations = left_side
+for i in 0..left_side.len(): vx_equations[i][2] = right_side[i]
+let dvx = det4(vx_equations)
+
+let vy_equations = left_side
+for i in 0..left_side.len(): vy_equations[i][3] = right_side[i]
+let dvy = det4(vy_equations)
+
+assert dvx % abs(d) == 0 and dvy % abs(d) == 0
+let vx = dvx / d
+let vy = dvy / d
+
+# now plugging back vx and vy into the original equation, leaving us with 2 variables
+let (d, dx, dy) = cramer(
+  left_side[0][0], left_side[0][1], right_side[0] - left_side[0][2] * vx - left_side[0][3] * vy,
+  left_side[1][0], left_side[1][1], right_side[1] - left_side[1][2] * vx - left_side[1][3] * vy
+)
+assert dx % abs(d) == 0 and dy % abs(d) == 0
+let x = dx / d
+let y = dy / d
+
+# now we need to do the same for Z and VZ, but we now have a lot of constants
+# using the derived equations from above and just replacing Y and VY with Z and VZ
+# (vzi - vzj) X - (vxi - vxj) Z - (zi - zj) VX + (xi - xj) VZ = - zi vxi + zj vxj + xi vzi - xj vzj
+# - (vxi - vxj) Z + (xi - xj) VZ = - zi vxi + zj vxj + xi vzi - xj vzj - (vzi - vzj) X + (zi - zj) VX
+let [xj, _, zj, vxj, _, vzj] = hailstones[1]
+let [xk, _, zk, vxk, _, vzk] = hailstones[2]
+let (d, dz, _) = cramer(
+  vxj - vxi, xi - xj, - zi * vxi + zj * vxj + xi * vzi - xj * vzj - (vzi - vzj) * x + (zi - zj) * vx,
+  vxk - vxi, xi - xk, - zi * vxi + zk * vxk + xi * vzi - xk * vzk - (vzi - vzk) * x + (zi - zk) * vx,
+)
+assert dz % abs(d) == 0
+let z = dz / d
+
+x + y + z
+
+test """
+19, 13, 30 @ -2,  1, -2
+18, 19, 22 @ -1, -1, -2
+20, 25, 34 @ -2, -2, -4
+12, 31, 28 @ -1, -2, -1
+20, 19, 15 @  1, -5, -3
+""" == 47
+test file("input.txt") == 849377770236905

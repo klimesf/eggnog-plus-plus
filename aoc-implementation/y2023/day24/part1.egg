@@ -1,0 +1,31 @@
+let test_area_from = 200000000000000
+let test_area_to = 400000000000000
+
+fun cramer(a: int, b: int, c: int, d: int, e: int, f: int) -> (int, int, int):
+  (a * e - b * d, c * e - b * f, a * f - c * d)
+
+fun collides(a: [int], b: [int]) -> bool:
+  let (d, dx, dy) = cramer(a[3], -b[3], b[0] - a[0], a[4], -b[4], b[1] - a[1])
+  if d == 0: return false # no solution or follow the same path (the latter doesnt happen luckily)
+  if dx / d < 0 or dy / d < 0: return false # collided in past
+  let x = (d * a[0] + dx * a[3]) / d
+  let y = (d * a[1] + dx * a[4]) / d
+  x >= test_area_from and x <= test_area_to and y >= test_area_from and y <= test_area_to
+
+fun find_collisions(hailstones: string) -> int:
+  let hailstones = hailstones.lines().map(it.ints().to_list()).to_list()
+  hailstones.combinations(2).count([a, b] => collides(a, b))
+
+find_collisions(input)
+
+test "small example":
+  let test_area_from = 7
+  let test_area_to = 27
+  assert find_collisions("""
+  19, 13, 30 @ -2,  1, -2
+  18, 19, 22 @ -1, -1, -2
+  20, 25, 34 @ -2, -2, -4
+  12, 31, 28 @ -1, -2, -1
+  20, 19, 15 @  1, -5, -3
+  """) == 2
+test file("input.txt") == 19976
