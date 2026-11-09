@@ -72,3 +72,19 @@ test "missing grid":
         _ => panic!("the test without `grid` should fail with the script-variable hint"),
     }
 }
+
+/// A solution's answer must be an int or a string; `run_program` (used by the
+/// golden tests above) allows any value.
+#[test]
+fn answer_must_be_int_or_string() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let run = |source: &str| {
+        let program = eggnog_ref::parse_source(source).unwrap();
+        eggnog_ref::run_solution(&program, "", dir).map(|v| v.to_string()).map_err(|e| e.message)
+    };
+    assert_eq!(run("1 + 2"), Ok("3".to_string()));
+    assert_eq!(run("[1, 2].to_string(sep = \",\")"), Ok("1,2".to_string()));
+    let err = run("[1, 2]").unwrap_err();
+    assert!(err.contains("the answer must be an int or a string") && err.contains("to_string(sep"), "{err}");
+    assert!(run("(1, 2)").unwrap_err().contains("the answer must be an int or a string"));
+}

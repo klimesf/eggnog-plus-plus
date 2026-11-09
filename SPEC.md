@@ -226,7 +226,7 @@ A container constructor's arguments are the same as one `push`/`add`: `Set(start
 ## Chains
 
 - `map`, `filter`, `flat_map`, ranges (`0..`) and similar are **lazy**: they process one element at a time and build no intermediate collections. The compiler fuses a chain into nested loops.
-- A chain can't be stored (it holds lambdas), so it must be consumed in the expression that builds it: by a terminal (`sum`, `product`, `count`, `any`, `min`, `max`, …), by `for x in chain:`, or by an explicit `to_list()` / `to_set()` / `to_map()`, or `to_string(sep = "")`, which joins a chain of chars or strings into one string: `rows.to_string(sep = "\n")`. Assigning a bare chain is a compile error.
+- A chain can't be stored (it holds lambdas), so it must be consumed in the expression that builds it: by a terminal (`sum`, `product`, `count`, `any`, `min`, `max`, …), by `for x in chain:`, or by an explicit `to_list()` / `to_set()` / `to_map()`, or `to_string(sep = "")`, which joins a chain of chars, strings or ints into one string: `rows.to_string(sep = "\n")`, `output.to_string(sep = ",")` (an int as its decimal text, 2024 d17). Assigning a bare chain is a compile error.
 - Side effects in lambdas happen in element order.
 - Ranges: `a..b` excludes `b`, `a..=b` includes it, `a..` never ends. Ranges are lazy chains.
 - `scan(init, f)` yields each running value of `acc = f(acc, x)`, starting from `acc = init`. `init` itself is not yielded: `[1, 1, -1].scan(0, (a, x) => a + x)` gives `1, 2, 1`.

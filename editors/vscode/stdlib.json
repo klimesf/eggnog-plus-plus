@@ -93,7 +93,7 @@
     { "name": "to_list", "on": "chain", "sig": "to_list()", "doc": "Collects into a new list." },
     { "name": "to_set", "on": "chain", "sig": "to_set()", "doc": "Collects into a new set." },
     { "name": "to_map", "on": "chain", "sig": "to_map()", "doc": "Collects `(key, value)` pairs into a new map." },
-    { "name": "to_string", "on": "chain", "sig": "to_string(sep = \"\")", "doc": "Joins chars or strings: `rows.to_string(sep = \"\\n\")`." },
+    { "name": "to_string", "on": "chain", "sig": "to_string(sep = \"\")", "doc": "Joins chars, strings or ints: `rows.to_string(sep = \"\\n\")`, `output.to_string(sep = \",\")`." },
     { "name": "chunks", "on": "chain", "sig": "chunks(n)", "doc": "Lazy: lists of `n` elements, one group after another (lines 1–3, then 4–6). The last list may be shorter." },
     { "name": "permutations", "on": "chain", "sig": "permutations() -> chain of lists", "doc": "Every ordering of the elements, as lists: `(0..5).permutations()`. Picked by position, so equal elements repeat. Reads the whole input first, then lazy. n! results." },
     { "name": "combinations", "on": "chain", "sig": "combinations(k) -> chain of lists", "doc": "Every choice of `k` elements, as lists in their original order: `xs.combinations(2)` for every pair. Picked by position. Reads the whole input first, then lazy." },

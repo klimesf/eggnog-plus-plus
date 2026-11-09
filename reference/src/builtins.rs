@@ -1213,6 +1213,14 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
                         None => String::new(),
                         Some(other) => return Err(Error::runtime(format!("sep must be a string, found {}", describe(other)), span)),
                     };
+                    for v in &items {
+                        if !matches!(v, Value::Char(_) | Value::Str(_) | Value::Int(_)) {
+                            return Err(Error::runtime(
+                                format!("to_string joins chars, strings or ints, found {}", describe(v)),
+                                span,
+                            ));
+                        }
+                    }
                     let parts: Vec<String> = items.iter().map(|v| v.to_string()).collect();
                     Ok(Value::Str(parts.join(&sep).into()))
                 }

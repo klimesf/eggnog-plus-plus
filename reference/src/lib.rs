@@ -34,6 +34,22 @@ pub fn run_program(program: &Program, input: &str, base_dir: &Path) -> Result<Va
     Interp::new(strip_input(input), base_dir.to_path_buf()).run(program)
 }
 
+/// Runs a program as a puzzle solution: its answer must be an `int` or a
+/// `string` (SPEC: Program structure). `run_program` itself allows any value,
+/// so the golden tests can show tuples and lists.
+pub fn run_solution(program: &Program, input: &str, base_dir: &Path) -> Result<Value> {
+    let answer = run_program(program, input, base_dir)?;
+    if matches!(answer, Value::Int(_) | Value::Str(_)) {
+        return Ok(answer);
+    }
+    let span = program.body.iter().rev().find(|s| !interp::is_test(s)).map_or(Span::default(), |s| s.span);
+    let hint = match answer {
+        Value::List(_) => "; to join numbers, use `.to_string(sep = \",\")`",
+        _ => "",
+    };
+    Err(Error::runtime(format!("the answer must be an int or a string, found {}{hint}", interp::describe(&answer)), span))
+}
+
 pub struct TestResult {
     pub span: Span,
     pub outcome: std::result::Result<(), TestFailure>,
@@ -64,7 +80,7 @@ pub fn run_tests(program: &Program, base_dir: &Path) -> Vec<TestResult> {
                         }
                     };
                     let expected = bare.eval(expected).map_err(TestFailure::Error)?;
-                    let actual = run_program(program, &input, base_dir).map_err(TestFailure::Error)?;
+                    let actual = run_solution(program, &input, base_dir).map_err(TestFailure::Error)?;
                     if actual == expected { Ok(()) } else { Err(TestFailure::Wrong { expected, actual }) }
                 })();
                 results.push(TestResult { span: stmt.span, outcome });

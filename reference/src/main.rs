@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::{env, fs};
 
-use eggnog_ref::{TestFailure, parse_source, run_program, run_tests};
+use eggnog_ref::{TestFailure, parse_source, run_solution, run_tests};
 
 const USAGE: &str = "\
 usage:
@@ -78,7 +78,7 @@ fn real_main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             };
-            let result = parse_source(&unit.code).and_then(|p| run_program(&p, &input, &base_dir));
+            let result = parse_source(&unit.code).and_then(|p| run_solution(&p, &input, &base_dir));
             match result {
                 Ok(answer) => {
                     println!("{answer}");
