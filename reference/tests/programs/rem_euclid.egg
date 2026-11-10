@@ -1,6 +1,6 @@
-# `%` is Euclidean: never negative, so it wraps coordinates around
+# `%` is never negative, so it wraps coordinates around
 let n = 5
 let wrapped = [-7, -5, -1, 0, 4, 12].map(it % n).to_list()
 let x = -1
 x %= 3
-(wrapped, x, 7 % -3, -7 % -3)
+(wrapped, x)

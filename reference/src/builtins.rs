@@ -190,13 +190,16 @@ fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
             if matches!(op, Div | Rem) && y == 0 {
                 return Err(Error::runtime("division by zero", span));
             }
+            if op == Rem && y < 0 {
+                return Err(Error::runtime(format!("`%` needs a positive modulus, got {y}"), span));
+            }
             let r = match op {
                 Add => x.checked_add(y),
                 Sub => x.checked_sub(y),
                 Mul => x.checked_mul(y),
-                // Rounds down (for a positive divisor), to match `%`: `-7 / 2 == -4`.
-                Div => x.checked_div_euclid(y),
-                // Euclidean remainder: always in 0..|y|, so `(p + d) % n` wraps negative values around.
+                // Rounds down for every sign: `-7 / 2 == -4`, `-34 / -6 == 5`.
+                Div => x.checked_div(y).map(|q| if x % y != 0 && (x < 0) != (y < 0) { q - 1 } else { q }),
+                // Always in 0..y, so `(p + d) % n` wraps negative values around.
                 _ => x.checked_rem_euclid(y),
             };
             r.map(Value::Int).ok_or_else(|| overflow(span))
