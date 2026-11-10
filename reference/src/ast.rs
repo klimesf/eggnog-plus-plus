@@ -108,7 +108,7 @@ pub struct Expr {
 
 #[derive(Debug)]
 pub enum ExprKind {
-    Int(i64),
+    Int(i128),
     Str(Rc<str>),
     Char(u8),
     Bool(bool),

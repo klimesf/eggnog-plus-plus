@@ -8,8 +8,8 @@
     { "name": "Left", "sig": "Left = (0, -1)", "doc": "Direction: one column left." },
     { "name": "Dirs4", "sig": "Dirs4 = [Up, Right, Down, Left]", "doc": "The 4 directions, clockwise from up. `Dirs4[(i + 1) % 4]` turns right." },
     { "name": "Dirs8", "sig": "Dirs8", "doc": "The 8 directions (with diagonals), clockwise from up." },
-    { "name": "int::Max", "sig": "int::Max", "doc": "The largest int (2^63 - 1)." },
-    { "name": "int::Min", "sig": "int::Min", "doc": "The smallest int (-2^63)." }
+    { "name": "int::Max", "sig": "int::Max", "doc": "The largest int (2^127 - 1, about 1.7e38)." },
+    { "name": "int::Min", "sig": "int::Min", "doc": "The smallest int (-2^127)." }
   ],
   "functions": [
     { "name": "panic", "sig": "panic(message)", "doc": "Stops the program with an error message." },

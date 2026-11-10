@@ -39,7 +39,7 @@ pub fn new_scope(parent: Option<Env>) -> Env {
 #[derive(Clone)]
 pub enum Value {
     Unit,
-    Int(i64),
+    Int(i128),
     Bool(bool),
     Char(u8),
     Str(Rc<str>),
@@ -51,7 +51,9 @@ pub enum Value {
     Stack(Rc<Vec<Value>>),
     MinQueue(Rc<MinQ>),
     Grid(Rc<GridV>),
-    Range { start: Option<i64>, end: Option<i64> },
+    /// `start..end`, either end open. Behind an `Rc` so a range doesn't make
+    /// every `Value` bigger: two `Option<i128>`s take 64 bytes.
+    Range(Rc<(Option<i128>, Option<i128>)>),
     Chain(Rc<ChainV>),
     Func(Rc<Func>),
     Lambda(Rc<LambdaV>),
@@ -78,7 +80,7 @@ pub struct MinQ {
 
 #[derive(Clone)]
 pub struct HeapEntry {
-    pub prio: i64,
+    pub prio: i128,
     pub seq: u64,
     pub item: Value,
 }
@@ -103,17 +105,17 @@ impl Ord for HeapEntry {
 
 #[derive(Clone)]
 pub struct GridV {
-    pub rows: i64,
-    pub cols: i64,
+    pub rows: i128,
+    pub cols: i128,
     pub cells: Vec<Value>,
 }
 
 impl GridV {
-    pub fn contains(&self, r: i64, c: i64) -> bool {
+    pub fn contains(&self, r: i128, c: i128) -> bool {
         r >= 0 && r < self.rows && c >= 0 && c < self.cols
     }
 
-    pub fn idx(&self, r: i64, c: i64) -> usize {
+    pub fn idx(&self, r: i128, c: i128) -> usize {
         (r * self.cols + c) as usize
     }
 }
@@ -131,7 +133,7 @@ pub enum Source {
     Values { items: Rc<Vec<Value>>, rev: bool },
     Chars { s: Rc<str>, rev: bool },
     /// `end` is exclusive; `None` means no end.
-    Range { start: i64, end: Option<i64>, rev: bool },
+    Range { start: i128, end: Option<i128>, rev: bool },
     /// Lists of `items` picked by position, in lexicographic order of the
     /// positions: every ordering of all of them (`k` is `None`), or every
     /// subset of `k` in their original order.
@@ -143,10 +145,10 @@ pub enum StageOp {
     Map(Value),
     Filter(Value),
     FlatMap(Value),
-    Enumerate(i64),
+    Enumerate(i128),
     Scan(Value, Value),
-    Take(i64),
-    Skip(i64),
+    Take(i128),
+    Skip(i128),
     /// Keeps the elements that are `in` the collection.
     Intersect(Value),
     Chunks(usize),
@@ -202,7 +204,7 @@ impl Value {
             Value::Stack(_) => "Stack",
             Value::MinQueue(_) => "MinQueue",
             Value::Grid(_) => "Grid",
-            Value::Range { .. } => "range",
+            Value::Range(_) => "range",
             Value::Chain(_) => "chain",
             Value::Func(_) => "function",
             Value::Lambda(_) => "lambda",
@@ -216,11 +218,11 @@ impl Value {
         Value::Tuple(Rc::new(items))
     }
 
-    pub fn point(r: i64, c: i64) -> Value {
+    pub fn point(r: i128, c: i128) -> Value {
         Value::tuple(vec![Value::Int(r), Value::Int(c)])
     }
 
-    pub fn as_point(&self) -> Option<(i64, i64)> {
+    pub fn as_point(&self) -> Option<(i128, i128)> {
         match self {
             Value::Tuple(t) if t.len() == 2 => match (&t[0], &t[1]) {
                 (Value::Int(r), Value::Int(c)) => Some((*r, *c)),
@@ -255,7 +257,7 @@ impl Value {
             | (Value::Bool(_), Value::Bool(_))
             | (Value::Char(_), Value::Char(_))
             | (Value::Str(_), Value::Str(_))
-            | (Value::Range { .. }, Value::Range { .. }) => true,
+            | (Value::Range(_), Value::Range(_)) => true,
             (Value::Tuple(a), Value::Tuple(b)) => a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| x.same_type(y)),
             (Value::List(a), Value::List(b)) | (Value::Stack(a), Value::Stack(b)) => sample(a.iter(), b.iter()),
             (Value::Set(a), Value::Set(b)) => sample(a.iter(), b.iter()),
@@ -313,7 +315,7 @@ impl PartialEq for Value {
             (Value::Map(a), Value::Map(b)) => a.map == b.map,
             (Value::Queue(a), Value::Queue(b)) => a == b,
             (Value::Grid(a), Value::Grid(b)) => a.rows == b.rows && a.cols == b.cols && a.cells == b.cells,
-            (Value::Range { start: a, end: b }, Value::Range { start: c, end: d }) => a == c && b == d,
+            (Value::Range(a), Value::Range(b)) => a == b,
             (Value::Record(da, a), Value::Record(db, b)) => da.same(db) && a == b,
             _ => false,
         }
@@ -376,7 +378,8 @@ impl fmt::Display for Value {
                 }
                 Ok(())
             }
-            Value::Range { start, end } => {
+            Value::Range(r) => {
+                let (start, end) = **r;
                 write!(f, "{}..{}", start.map(|n| n.to_string()).unwrap_or_default(), end.map(|n| n.to_string()).unwrap_or_default())
             }
             Value::Chain(_) => write!(f, "<chain>"),

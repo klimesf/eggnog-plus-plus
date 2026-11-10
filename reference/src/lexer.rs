@@ -10,7 +10,7 @@ use crate::error::{Error, Result, Span};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Tok {
-    Int(i64),
+    Int(i128),
     Str(Rc<str>),
     Char(u8),
     Ident(Rc<str>),
@@ -283,8 +283,8 @@ impl<'a> Lexer<'a> {
         }
         let text: String = std::str::from_utf8(&self.src[start..self.pos]).unwrap().replace('_', "");
         let n = text
-            .parse::<i64>()
-            .map_err(|_| Error::lex("integer literal is too large for int (i64)", Span::new(start, self.pos)))?;
+            .parse::<i128>()
+            .map_err(|_| Error::lex("integer literal is too large for int (128 bits)", Span::new(start, self.pos)))?;
         self.push(Tok::Int(n), start);
         Ok(())
     }

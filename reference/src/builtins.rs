@@ -8,12 +8,12 @@ use crate::error::{Error, Result, Span};
 use crate::interp::{Interp, describe};
 use crate::value::*;
 
-const UP: (i64, i64) = (-1, 0);
-const RIGHT: (i64, i64) = (0, 1);
-const DOWN: (i64, i64) = (1, 0);
-const LEFT: (i64, i64) = (0, -1);
-const DIRS4: [(i64, i64); 4] = [UP, RIGHT, DOWN, LEFT];
-const DIRS8: [(i64, i64); 8] = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)];
+const UP: (i128, i128) = (-1, 0);
+const RIGHT: (i128, i128) = (0, 1);
+const DOWN: (i128, i128) = (1, 0);
+const LEFT: (i128, i128) = (0, -1);
+const DIRS4: [(i128, i128); 4] = [UP, RIGHT, DOWN, LEFT];
+const DIRS8: [(i128, i128); 8] = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)];
 
 pub fn globals() -> Env {
     let env = new_scope(None);
@@ -61,7 +61,7 @@ impl Args {
     }
 }
 
-fn int_arg(v: &Value, what: &str, span: Span) -> Result<i64> {
+fn int_arg(v: &Value, what: &str, span: Span) -> Result<i128> {
     match v {
         Value::Int(n) => Ok(*n),
         other => Err(Error::runtime(format!("{what} must be an int, found {}", describe(other)), span)),
@@ -89,7 +89,7 @@ pub fn unary(op: UnOp, v: Value, span: Span) -> Result<Value> {
 /// `as` converts between `char` and `int` (and, once floats exist, `int` and `float`).
 pub fn cast(v: Value, ty: &Type, span: Span) -> Result<Value> {
     match (v, ty) {
-        (Value::Char(c), Type::Int) => Ok(Value::Int(c as i64)),
+        (Value::Char(c), Type::Int) => Ok(Value::Int(c as i128)),
         (Value::Int(n), Type::Char) => u8::try_from(n)
             .map(Value::Char)
             .map_err(|_| Error::runtime(format!("`{n} as char` is outside 0..=255"), span)),
@@ -160,11 +160,11 @@ fn bitwise(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
         }
         _ => return Err(Error::runtime(format!("can't apply `{}` to {} and {}", op_symbol(op), describe(&a), describe(&b)), span)),
     };
-    let shift = |y: i64| -> Result<u32> {
-        if (0..64).contains(&y) {
+    let shift = |y: i128| -> Result<u32> {
+        if (0..128).contains(&y) {
             Ok(y as u32)
         } else {
-            Err(Error::runtime(format!("can't shift by {y} bits (0..=63)"), span))
+            Err(Error::runtime(format!("can't shift by {y} bits (0..=127)"), span))
         }
     };
     Ok(Value::Int(match op {
@@ -180,6 +180,28 @@ fn bitwise(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
         }
         _ => x >> shift(y)?,
     }))
+}
+
+/// `a * b % m` for `a, b < m`, without overflowing 128 bits: the fast path
+/// when the product fits, otherwise doubling and adding.
+fn mul_mod(a: u128, b: u128, m: u128) -> u128 {
+    if let Some(p) = a.checked_mul(b) {
+        return p % m;
+    }
+    let (mut result, mut a, mut b) = (0u128, a, b);
+    while b > 0 {
+        if b & 1 == 1 {
+            result = add_mod(result, a, m);
+        }
+        a = add_mod(a, a, m);
+        b >>= 1;
+    }
+    result
+}
+
+/// `(a + b) % m` for `a, b < m`, where `a + b` may not fit in a `u128`.
+fn add_mod(a: u128, b: u128, m: u128) -> u128 {
+    if a >= m - b { a - (m - b) } else { a + b }
 }
 
 fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
@@ -214,7 +236,7 @@ fn arith(op: BinOp, a: Value, b: Value, span: Span) -> Result<Value> {
             Ok(Value::tuple(x.iter().map(|p| arith(Mul, p.clone(), b.clone(), span)).collect::<Result<_>>()?))
         }
         (Value::Int(_), Value::Tuple(_)) if op == Mul => arith(Mul, b, a, span),
-        (Value::Char(x), Value::Char(y)) if op == Sub => Ok(Value::Int(*x as i64 - *y as i64)),
+        (Value::Char(x), Value::Char(y)) if op == Sub => Ok(Value::Int(*x as i128 - *y as i128)),
         (Value::Str(x), Value::Str(y)) if op == Add => Ok(Value::Str(format!("{x}{y}").into())),
         (Value::Str(x), Value::Char(y)) if op == Add => Ok(Value::Str(format!("{x}{}", *y as char).into())),
         (Value::Char(x), Value::Str(y)) if op == Add => Ok(Value::Str(format!("{}{y}", *x as char).into())),
@@ -314,8 +336,8 @@ pub fn contains(coll: &Value, item: &Value, span: Span) -> Result<bool> {
             Some((r, c)) => g.contains(r, c),
             None => return Err(Error::runtime(format!("`in grid` needs a (row, col) point, found {}", describe(item)), span)),
         },
-        Value::Range { start, end } => match item {
-            Value::Int(n) => start.is_none_or(|s| *n >= s) && end.is_none_or(|e| *n < e),
+        Value::Range(r) => match item {
+            Value::Int(n) => r.0.is_none_or(|s| *n >= s) && r.1.is_none_or(|e| *n < e),
             _ => return Err(Error::runtime(format!("can't look for {} in a range of ints", describe(item)), span)),
         },
         Value::Chain(_) => return Err(Error::runtime("`in` doesn't work on a chain; use .any(x => x == …)", span)),
@@ -323,16 +345,16 @@ pub fn contains(coll: &Value, item: &Value, span: Span) -> Result<bool> {
     })
 }
 
-fn slice_bounds(start: Option<i64>, end: Option<i64>, len: usize, span: Span) -> Result<(usize, usize)> {
+fn slice_bounds(start: Option<i128>, end: Option<i128>, len: usize, span: Span) -> Result<(usize, usize)> {
     let s = start.unwrap_or(0);
-    let e = end.unwrap_or(len as i64);
-    if s < 0 || e < s || e > len as i64 {
+    let e = end.unwrap_or(len as i128);
+    if s < 0 || e < s || e > len as i128 {
         return Err(Error::runtime(format!("slice {s}..{e} is out of bounds for length {len}"), span));
     }
     Ok((s as usize, e as usize))
 }
 
-fn list_index(i: i64, len: usize, span: Span) -> Result<usize> {
+fn list_index(i: i128, len: usize, span: Span) -> Result<usize> {
     if i < 0 || i as usize >= len {
         Err(Error::runtime(format!("index {i} is out of bounds for length {len}"), span))
     } else {
@@ -356,13 +378,13 @@ pub fn index(c: &Value, k: &Value, span: Span) -> Result<Value> {
         (Value::Tuple(_), Value::Int(_)) => {
             Err(Error::runtime("tuples can't be indexed; destructure them instead: `let (r, c) = pos`", span))
         }
-        (Value::List(xs), Value::Range { start, end }) => {
-            let (s, e) = slice_bounds(*start, *end, xs.len(), span)?;
+        (Value::List(xs), Value::Range(r)) => {
+            let (s, e) = slice_bounds(r.0, r.1, xs.len(), span)?;
             Ok(Value::List(Rc::new(xs[s..e].to_vec())))
         }
         (Value::Str(s), Value::Int(i)) => Ok(Value::Char(s.as_bytes()[list_index(*i, s.len(), span)?])),
-        (Value::Str(s), Value::Range { start, end }) => {
-            let (a, b) = slice_bounds(*start, *end, s.len(), span)?;
+        (Value::Str(s), Value::Range(r)) => {
+            let (a, b) = slice_bounds(r.0, r.1, s.len(), span)?;
             Ok(Value::Str(s[a..b].into()))
         }
         (Value::Grid(g), _) => Ok(g.cells[grid_pos(g, k, span)?].clone()),
@@ -425,8 +447,8 @@ pub fn to_chain(v: &Value, span: Span) -> Result<Rc<ChainV>> {
         Value::Set(s) => values(s.iter().cloned().collect()),
         Value::Map(m) => values(m.map.iter().map(|(k, v)| Value::tuple(vec![k.clone(), v.clone()])).collect()),
         Value::Str(s) => Source::Chars { s: s.clone(), rev: false },
-        Value::Range { start: Some(s), end } => Source::Range { start: *s, end: *end, rev: false },
-        Value::Range { start: None, .. } => return Err(Error::runtime("a range needs a start to be iterated", span)),
+        Value::Range(r) if r.0.is_some() => Source::Range { start: r.0.unwrap(), end: r.1, rev: false },
+        Value::Range(_) => return Err(Error::runtime("a range needs a start to be iterated", span)),
         Value::Grid(_) => return Err(Error::runtime("a grid isn't iterable; use grid.positions()", span)),
         other => return Err(Error::runtime(format!("{} is not iterable", describe(other)), span)),
     };
@@ -485,17 +507,17 @@ pub fn call_global(it: &mut Interp, name: &str, a: Args, span: Span) -> Result<V
                     if m <= 0 {
                         return Err(Error::runtime(format!("pow's mod must be positive, got {m}"), span));
                     }
-                    // Square-and-multiply in 128 bits, so a modulus up to 2^63 never overflows.
-                    let m = m as i128;
-                    let (mut result, mut b, mut e) = (1 % m, (base as i128).rem_euclid(m), exp);
+                    // Square-and-multiply; `mul_mod` never overflows, so any positive modulus works.
+                    let m = m as u128;
+                    let (mut result, mut b, mut e) = (1 % m, base.rem_euclid(m as i128) as u128, exp);
                     while e > 0 {
                         if e & 1 == 1 {
-                            result = result * b % m;
+                            result = mul_mod(result, b, m);
                         }
-                        b = b * b % m;
+                        b = mul_mod(b, b, m);
                         e >>= 1;
                     }
-                    Ok(Value::Int(result as i64))
+                    Ok(Value::Int(result as i128))
                 }
             }
         }
@@ -519,7 +541,7 @@ pub fn call_global(it: &mut Interp, name: &str, a: Args, span: Span) -> Result<V
             } else {
                 (x.unsigned_abs() / p).checked_mul(y.unsigned_abs())
             };
-            result.and_then(|r| i64::try_from(r).ok()).map(Value::Int).ok_or_else(|| overflow(span))
+            result.and_then(|r| i128::try_from(r).ok()).map(Value::Int).ok_or_else(|| overflow(span))
         }
         "Set" => {
             a.check(1, &[], name, span)?;
@@ -670,7 +692,7 @@ fn str_ints(s: &str, span: Span) -> Result<Vec<Value>> {
             while i < b.len() && b[i].is_ascii_digit() {
                 i += 1;
             }
-            let n = s[start..i].parse::<i64>().map_err(|_| Error::runtime(format!("number `{}` doesn't fit in an int", &s[start..i]), span))?;
+            let n = s[start..i].parse::<i128>().map_err(|_| Error::runtime(format!("number `{}` doesn't fit in an int", &s[start..i]), span))?;
             out.push(Value::Int(n));
         } else {
             i += 1;
@@ -693,13 +715,13 @@ fn parse_grid(s: &str, digits: bool, span: Span) -> Result<Value> {
                 if !b.is_ascii_digit() {
                     return Err(Error::runtime(format!("to_digit_grid: `{}` on line {} is not a digit", b as char, r + 1), span));
                 }
-                Value::Int((b - b'0') as i64)
+                Value::Int((b - b'0') as i128)
             } else {
                 Value::Char(b)
             });
         }
     }
-    Ok(Value::Grid(Rc::new(GridV { rows: rows as i64, cols: cols as i64, cells })))
+    Ok(Value::Grid(Rc::new(GridV { rows: rows as i128, cols: cols as i128, cells })))
 }
 
 /// The most arguments (positional and named together) a non-mutating method
@@ -736,11 +758,11 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
     }
     // Type-specific methods first.
     match (&recv, name) {
-        (Value::Str(s), "len") => return Ok(Value::Int(s.len() as i64)),
+        (Value::Str(s), "len") => return Ok(Value::Int(s.len() as i128)),
         (Value::Str(s), "lines") => return Ok(chain_of(str_lines(s), span)),
         (Value::Str(s), "ints") => return Ok(chain_of(str_ints(s, span)?, span)),
         (Value::Str(s), "digits") => {
-            return Ok(chain_of(s.bytes().filter(u8::is_ascii_digit).map(|b| Value::Int((b - b'0') as i64)).collect(), span));
+            return Ok(chain_of(s.bytes().filter(u8::is_ascii_digit).map(|b| Value::Int((b - b'0') as i128)).collect(), span));
         }
         (Value::Str(_), "chars") => return Ok(Value::Chain(to_chain(&recv, span)?)),
         (Value::Str(s), "starts_with") => {
@@ -788,14 +810,14 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
             if let Some(c) = digits.chars().find(|c| !c.is_digit(base)) {
                 return Err(Error::runtime(format!("{} is not a base-{base} integer: `{c}` isn't a digit", recv.repr()), span));
             }
-            return i64::from_str_radix(s, base).map(Value::Int).map_err(|_| Error::runtime(format!("{} doesn't fit in an int", recv.repr()), span));
+            return i128::from_str_radix(s, base).map(Value::Int).map_err(|_| Error::runtime(format!("{} doesn't fit in an int", recv.repr()), span));
         }
         (Value::Str(s), "int") => {
             let ok = s.strip_prefix('-').unwrap_or(s);
             if ok.is_empty() || !ok.bytes().all(|b| b.is_ascii_digit()) {
                 return Err(Error::runtime(format!("{} is not an integer (to pull numbers out of text, use .ints())", recv.repr()), span));
             }
-            return s.parse::<i64>().map(Value::Int).map_err(|_| Error::runtime(format!("{} doesn't fit in an int", recv.repr()), span));
+            return s.parse::<i128>().map(Value::Int).map_err(|_| Error::runtime(format!("{} doesn't fit in an int", recv.repr()), span));
         }
         (Value::Str(s), "to_char_grid") => return parse_grid(s, false, span),
         (Value::Str(s), "to_digit_grid") => return parse_grid(s, true, span),
@@ -804,7 +826,7 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
         (Value::Char(c), "is_letter") => return Ok(Value::Bool(c.is_ascii_alphabetic())),
         (Value::Char(c), "digit") => {
             return if c.is_ascii_digit() {
-                Ok(Value::Int((c - b'0') as i64))
+                Ok(Value::Int((c - b'0') as i128))
             } else {
                 Err(Error::runtime(format!("{} is not a digit", recv.repr()), span))
             };
@@ -822,21 +844,21 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
         (Value::Char(c), "to_string") => return Ok(Value::Str((*c as char).to_string().into())),
         (Value::Int(n), "to_string") => return Ok(Value::Str(n.to_string().into())),
         (Value::Int(n), "digits") => {
-            let digits = n.unsigned_abs().to_string().bytes().map(|b| Value::Int((b - b'0') as i64)).collect();
+            let digits = n.unsigned_abs().to_string().bytes().map(|b| Value::Int((b - b'0') as i128)).collect();
             return Ok(chain_of(digits, span));
         }
-        (Value::List(xs) | Value::Tuple(xs) | Value::Stack(xs), "len") => return Ok(Value::Int(xs.len() as i64)),
+        (Value::List(xs) | Value::Tuple(xs) | Value::Stack(xs), "len") => return Ok(Value::Int(xs.len() as i128)),
         (Value::List(xs) | Value::Stack(xs), "is_empty") => return Ok(Value::Bool(xs.is_empty())),
         (Value::Stack(xs), "top") => return Ok(xs.last().cloned().unwrap_or(Value::Missing)),
-        (Value::Set(s), "len") => return Ok(Value::Int(s.len() as i64)),
+        (Value::Set(s), "len") => return Ok(Value::Int(s.len() as i128)),
         (Value::Set(s), "is_empty") => return Ok(Value::Bool(s.is_empty())),
-        (Value::Map(m), "len") => return Ok(Value::Int(m.map.len() as i64)),
+        (Value::Map(m), "len") => return Ok(Value::Int(m.map.len() as i128)),
         (Value::Map(m), "is_empty") => return Ok(Value::Bool(m.map.is_empty())),
         (Value::Map(m), "keys") => return Ok(chain_of(m.map.keys().cloned().collect(), span)),
         (Value::Map(m), "values") => return Ok(chain_of(m.map.values().cloned().collect(), span)),
-        (Value::Queue(q), "len") => return Ok(Value::Int(q.len() as i64)),
+        (Value::Queue(q), "len") => return Ok(Value::Int(q.len() as i128)),
         (Value::Queue(q), "is_empty") => return Ok(Value::Bool(q.is_empty())),
-        (Value::MinQueue(q), "len") => return Ok(Value::Int(q.heap.len() as i64)),
+        (Value::MinQueue(q), "len") => return Ok(Value::Int(q.heap.len() as i128)),
         (Value::MinQueue(q), "is_empty") => return Ok(Value::Bool(q.heap.is_empty())),
         (Value::Str(s), "is_empty") => return Ok(Value::Bool(s.is_empty())),
         (Value::Grid(g), _) => return grid_method(g, name, &a, span),
@@ -863,7 +885,7 @@ pub fn call_method(it: &mut Interp, recv: Value, name: &str, a: Args, span: Span
 }
 
 fn grid_method(g: &Rc<GridV>, name: &str, a: &Args, span: Span) -> Result<Value> {
-    let point = |a: &Args| -> Result<(i64, i64)> {
+    let point = |a: &Args| -> Result<(i128, i128)> {
         a.pos
             .first()
             .and_then(Value::as_point)
@@ -874,7 +896,7 @@ fn grid_method(g: &Rc<GridV>, name: &str, a: &Args, span: Span) -> Result<Value>
         "cols" => Ok(Value::Int(g.cols)),
         "neighbors4" | "neighbors8" => {
             let (r, c) = point(a)?;
-            let dirs: &[(i64, i64)] = if name == "neighbors4" { &DIRS4 } else { &DIRS8 };
+            let dirs: &[(i128, i128)] = if name == "neighbors4" { &DIRS4 } else { &DIRS8 };
             let items = dirs
                 .iter()
                 .map(|(dr, dc)| (r + dr, c + dc))
@@ -900,7 +922,7 @@ fn grid_method(g: &Rc<GridV>, name: &str, a: &Args, span: Span) -> Result<Value>
                 g.cells.iter().rposition(|c| c == target)
             };
             Ok(match found {
-                Some(i) => Value::point(i as i64 / g.cols, i as i64 % g.cols),
+                Some(i) => Value::point(i as i128 / g.cols, i as i128 % g.cols),
                 None => Value::Missing,
             })
         }
@@ -994,7 +1016,7 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
         }
         "count" => {
             let pred = a.pos.first().cloned();
-            let mut n = 0i64;
+            let mut n = 0i128;
             it.drive(chain, &mut |s, v| {
                 let hit = match &pred {
                     None => true,
@@ -1052,7 +1074,7 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
         "zip" => {
             a.check(1, &["other"], name, span)?;
             let other = a.req(0, "other", name, span)?;
-            if let Value::Range { end: None, .. } = other {
+            if matches!(&other, Value::Range(r) if r.1.is_none()) {
                 return Err(Error::runtime("zip needs a finite sequence (lengths must match); to number elements use enumerate()", span));
             }
             let other = to_chain(&other, span)?;
@@ -1170,7 +1192,7 @@ pub fn chain_method(it: &mut Interp, chain: &ChainV, name: &str, a: Args, span: 
         }
         "position" => {
             let f = lambda_arg(&a, 0, "f", name, span)?;
-            let mut idx = 0i64;
+            let mut idx = 0i128;
             let mut found = Value::Missing;
             it.drive(chain, &mut |s, v| {
                 if truth(s.call_value(&f, vec![v], span)?, name, span)? {

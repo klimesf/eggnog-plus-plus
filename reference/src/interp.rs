@@ -743,8 +743,8 @@ impl Interp {
                 None => return Err(Error::runtime(format!("unknown name `{n}`"), span)),
             },
             ExprKind::Path(t, m) => match (&**t, &**m) {
-                ("int", "Max") => Value::Int(i64::MAX),
-                ("int", "Min") => Value::Int(i64::MIN),
+                ("int", "Max") => Value::Int(i128::MAX),
+                ("int", "Min") => Value::Int(i128::MIN),
                 _ => return Err(Error::runtime(format!("unknown constant `{t}::{m}`"), span)),
             },
             ExprKind::Tuple(items) => Value::tuple(items.iter().map(|x| self.eval(x)).collect::<Result<_>>()?),
@@ -785,7 +785,7 @@ impl Interp {
                     }
                     None => None,
                 };
-                Value::Range { start, end }
+                Value::Range(Rc::new((start, end)))
             }
             ExprKind::Call { name, args } => self.call_named(name, args, span)?,
             ExprKind::Method { recv, name, args } => self.call_method(recv, name, args, span)?,
@@ -1284,7 +1284,7 @@ impl Interp {
 
 pub enum StageState {
     None,
-    Count(i64),
+    Count(i128),
     Acc(Value),
     Buf(VecDeque<Value>),
 }

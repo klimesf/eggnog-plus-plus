@@ -1,0 +1,5 @@
+# `int` is 128 bits: products of AoC-sized coordinates fit (2023 d24)
+let big = 400000000000000 * 1000000
+let shifted = 1 << 100
+let modded = pow(int::Max - 1, int::Max - 2, mod = int::Max)
+(big, big / 1000000, shifted >> 99, int::Max, int::Min, modded, gcd(1 << 120, 1 << 90))
