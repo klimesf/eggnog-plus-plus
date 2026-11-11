@@ -1,0 +1,18 @@
+input.lines()
+  .map(if it[0] == 'L' then -it[1..].int() else it[1..].int())
+  .scan(50, (dial, rotation) => (dial + rotation) % 100)
+  .count(0)
+
+test """
+L68
+L30
+R48
+L5
+R60
+L55
+L1
+L99
+R14
+L82
+""" == 3
+test file("input.txt") == 1145

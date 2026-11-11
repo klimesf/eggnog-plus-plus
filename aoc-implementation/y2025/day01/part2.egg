@@ -1,0 +1,22 @@
+let dial = 50
+let password = 0
+for line in input.lines():
+  let inc = if line[0] == 'L' then -1 else 1
+  for _ in 0..line[1..].int():
+    dial = (dial + inc) % 100
+    if dial == 0: password += 1
+password
+
+test """
+L68
+L30
+R48
+L5
+R60
+L55
+L1
+L99
+R14
+L82
+""" == 6
+test file("input.txt") == 6561
