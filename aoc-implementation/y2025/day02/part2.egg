@@ -1,0 +1,20 @@
+fun invalid_ids(a: int, b: int) -> [int]:
+  let ids = Set()
+  for digits in a.digits().count()..=b.digits().count():
+    for d in 1..=digits / 2:
+      if digits % d != 0: continue
+      let start = max(pow(10, d - 1), a / pow(10, digits - d))
+      for part in start..pow(10, d):
+        let id = part
+        for _ in 0..(digits / d - 1): id = id * pow(10, d) + part
+        if id > b: break
+        if id >= a: ids.add(id)
+  ids.to_list()
+
+input.split(",")
+  .map(it.ints().to_list())
+  .flat_map([a, b] => invalid_ids(a, b))
+  .sum()
+
+test """11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124""" == 4174379265
+test file("input.txt") == 27180728081
