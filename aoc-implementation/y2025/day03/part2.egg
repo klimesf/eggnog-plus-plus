@@ -1,0 +1,23 @@
+fun max_joltage(batteries: [int]) -> int:
+  let joltage = 0
+  let start = 0
+  for i in 0..12:
+    let n = (start..batteries.len() - 11 + i)
+      .to_sorted(by = batteries[it], desc = true)
+      .first()
+    joltage = joltage * 10 + batteries[n]
+    start = n + 1
+  joltage
+
+input.lines()
+  .map(it.digits().to_list())
+  .map(max_joltage(it))
+  .sum()
+
+test """
+987654321111111
+811111111111119
+234234234234278
+818181911112111
+""" == 3121910778619
+test file("input.txt") == 172681562473501
