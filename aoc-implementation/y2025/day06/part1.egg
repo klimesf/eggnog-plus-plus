@@ -1,0 +1,18 @@
+let lines = input.lines().to_list()
+let numbers = lines[..lines.len() - 1].map(it.ints().to_list()).to_list()
+let operations = lines.last().chars().filter(it != ' ').to_list()
+
+let total = 0
+for c in 0..numbers[0].len():
+  total += match operations[c]:
+    '+': numbers.map(it[c]).sum()
+    '*': numbers.map(it[c]).product()
+total
+
+test """
+123 328  51 64 
+ 45 64  387 23 
+  6 98  215 314
+*   +   *   +  
+""" == 4277556
+test file("input.txt") == 3785892992137

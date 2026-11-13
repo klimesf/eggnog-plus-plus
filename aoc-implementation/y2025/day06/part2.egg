@@ -1,0 +1,29 @@
+let lines = input.lines().to_list()
+let numbers = lines[..lines.len() - 1]
+let operations = lines.last()
+
+let total = 0
+let problem = []
+# walk right to left to read the operator last
+for c in (0..numbers[0].len()).rev():
+  if numbers.all(it[c] == ' '):
+    problem = []
+    continue
+  let num = numbers
+    .map(it[c])
+    .filter(it != ' ')
+    .to_string().int()
+  problem.push(num)
+  match operations[c]:
+    '+': total += problem.sum()
+    '*': total += problem.product()
+    _: continue
+total
+
+test """
+123 328  51 64 
+ 45 64  387 23 
+  6 98  215 314
+*   +   *   +  
+""" == 3263827
+test file("input.txt") == 7669802156452
