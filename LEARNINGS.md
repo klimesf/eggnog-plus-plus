@@ -8,7 +8,7 @@ Every standard technique only works when the problem has a certain shape. Before
 
 | Technique | Works only when | Where it didn't hold |
 |---|---|---|
-| `memo fun` | the same call happens more than once | 2023 d12 part 1: every call got a different string, so the cache never hit |
+| `memo fun` | the same call happens more than once | 2023 d12 part 1: every call got a different string, so the cache never hit. (held) 2025 d7 part 2: beams merge on the same cells, so ~3·10¹³ timelines come from a few thousand calls |
 | memoizing a result | the subproblems don't loop back on themselves | 2023 d16: beams cycle, and merged sets cost as much as walking |
 | Dijkstra's visited set | a node is everything that decides the next moves | 2023 d17: the position alone wasn't enough |
 | A* | the estimate is close to the real cost and never above it | 2023 d17: the estimate was too low to prune, so it ran slower |
