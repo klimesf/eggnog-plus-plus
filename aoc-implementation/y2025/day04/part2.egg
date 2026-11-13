@@ -1,0 +1,28 @@
+let grid = input.to_char_grid()
+
+fun deleteable(pos: (int, int)) -> bool:
+  grid[pos] == '@' and grid.neighbors8(pos).count(grid[it] == '@') < 4
+
+let queue = Queue()
+queue.push_all(grid.positions())
+let removed = 0
+while pos = queue.pop():
+  if !deleteable(pos): continue
+  grid[pos] = '.'
+  queue.push_all(grid.neighbors8(pos)) # removing a roll only affects its neighbors
+  removed += 1
+removed
+
+test """
+..@@.@@@@.
+@@@.@.@.@@
+@@@@@.@.@@
+@.@@@@..@.
+@@.@@@@.@@
+.@@@@@@@.@
+.@.@.@.@@@
+@.@@@.@@@@
+.@@@@@@@@.
+@.@.@@@.@.
+""" == 43
+test file("input.txt") == 8623

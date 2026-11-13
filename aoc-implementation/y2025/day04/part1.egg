@@ -1,0 +1,18 @@
+let grid = input.to_char_grid()
+grid.positions()
+  .filter(grid[it] == '@')
+  .count(roll => grid.neighbors8(roll).count(grid[it] == '@') < 4)
+
+test """
+..@@.@@@@.
+@@@.@.@.@@
+@@@@@.@.@@
+@.@@@@..@.
+@@.@@@@.@@
+.@@@@@@@.@
+.@.@.@.@@@
+@.@@@.@@@@
+.@@@@@@@@.
+@.@.@@@.@.
+""" == 13
+test file("input.txt") == 1435
