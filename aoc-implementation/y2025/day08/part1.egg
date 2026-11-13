@@ -1,0 +1,46 @@
+fun three_largest(iterations: int) -> int:
+  let boxes = input.lines().map(it.ints().to_list()).to_list()
+  let shortest = MinQueue()
+  for i in 0..boxes.len():
+    let [xi, yi, zi] = boxes[i]
+    for j in i + 1..boxes.len():
+      let [xj, yj, zj] = boxes[j]
+      shortest.push((i, j), pow(xi - xj, 2) + pow(yi - yj, 2) + pow(zi - zj, 2))
+
+  let circuits = (0..boxes.len()).to_list()
+  for _ in 0..iterations:
+    let ((i, j), _) = shortest.pop()
+    let old = circuits[j]
+    for k in 0..boxes.len(): if circuits[k] == old: circuits[k] = circuits[i]
+
+  let sizes = Map(default = 0)
+  for circuit in circuits: sizes[circuit] += 1
+  sizes.values().to_sorted(desc = true).take(3).product()
+
+three_largest(1000)
+
+test "three_largest":
+  let input = """
+  162,817,812
+  57,618,57
+  906,360,560
+  592,479,940
+  352,342,300
+  466,668,158
+  542,29,236
+  431,825,988
+  739,650,466
+  52,470,668
+  216,146,977
+  819,987,18
+  117,168,530
+  805,96,715
+  346,949,466
+  970,615,88
+  941,993,340
+  862,61,35
+  984,92,344
+  425,690,689
+  """
+  assert three_largest(10) == 40
+test file("input.txt") == 330786
