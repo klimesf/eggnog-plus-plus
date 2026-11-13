@@ -1,0 +1,17 @@
+input.lines()
+  .map(it.ints().to_list())
+  .combinations(2)
+  .map([[xi, yi], [xj, yj]] => (abs(xi - xj) + 1) * (abs(yi - yj) + 1))
+  .max()
+
+test """
+7,1
+11,1
+11,7
+9,7
+9,5
+2,5
+2,3
+7,3
+""" == 50
+test file("input.txt") == 4782151432

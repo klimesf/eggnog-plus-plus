@@ -1,0 +1,49 @@
+let red_tiles = input.lines().map(it.ints().to_list()).to_list()
+
+let edges = []
+for i in 0..red_tiles.len():
+  let [xi, yi] = red_tiles[i]
+  let [xj, yj] = red_tiles[(i + 1) % red_tiles.len()]
+  edges.push([min(xi, xj), max(xi, xj), min(yi, yj), max(yi, yj)])
+
+# the bigger edges are more likely to intersect
+edges.sort(by = [x1, x2, y1, y2] => x2 - x1 + y2 - y1, desc = true)
+
+fun intersects(i: [int], j: [int]) -> bool:
+  # note: we are not checking if the inside of the rect is in the polygon
+  # it is safe thanks to how the input is shaped, but we would need to add
+  # ray casting for general cases
+  let [xi, yi] = i
+  let [xj, yj] = j
+  let left = min(xi, xj)
+  let right = max(xi, xj)
+  let top = min(yi, yj)
+  let bottom = max(yi, yj)
+  for [xemin, xemax, yemin, yemax] in edges:
+    if !(left >= xemax or right <= xemin or bottom <= yemin or top >= yemax):
+      return true
+  false
+
+fun area(i: [int], j: [int]) -> int:
+  let [xi, yi] = i
+  let [xj, yj] = j
+  (abs(xi - xj) + 1) * (abs(yi - yj) + 1)
+
+red_tiles
+  .combinations(2)
+  .to_sorted(by = [i, j] => area(i, j), desc = true)
+  .filter([i, j] => !intersects(i, j))
+  .map([i, j] => area(i, j))
+  .first()
+
+test """
+7,1
+11,1
+11,7
+9,7
+9,5
+2,5
+2,3
+7,3
+""" == 24
+test file("input.txt") == 1450414119
