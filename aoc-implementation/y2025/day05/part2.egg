@@ -1,0 +1,27 @@
+let (ranges, _) = input.split_once("\n\n")
+let ranges = ranges.lines()
+  .map(it.ints().to_list())
+  .to_sorted().to_list()
+
+let fresh = 0
+let last = 0
+for [from, to] in ranges:
+  from = max(from, last + 1) # count only what's new
+  if from <= to: fresh += to - from + 1
+  last = max(to, last)
+fresh
+
+test """
+3-5
+10-14
+16-20
+12-18
+
+1
+5
+8
+11
+17
+32
+""" == 14
+test file("input.txt") == 338189277144473

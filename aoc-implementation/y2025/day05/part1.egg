@@ -1,0 +1,23 @@
+let (ranges, ingredients) = input.split_once("\n\n")
+let ranges = ranges.lines()
+  .map(it.ints().to_list())
+  .to_list()
+
+ingredients.lines()
+  .map(it.int())
+  .count(id => ranges.any([from, to] => from <= id and id <= to))
+
+test """
+3-5
+10-14
+16-20
+12-18
+
+1
+5
+8
+11
+17
+32
+""" == 3
+test file("input.txt") == 811
