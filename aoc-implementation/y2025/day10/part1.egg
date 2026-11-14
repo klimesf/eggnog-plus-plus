@@ -1,0 +1,29 @@
+fun fewest_presses(machine: string) -> int:
+  let (lights, buttons) = machine.split_once(" ")
+  let len = lights.len() - 2
+  lights = lights.chars()
+    .filter(it != '[' and it != ']')
+    .map(if it == '#' then '1' else '0')
+    .to_string().int(base = 2)
+  buttons = buttons.split(" ")
+    .filter(it.starts_with("("))
+    .map(it.ints().map(pow(2, len - it - 1)).sum())
+    .to_list()
+
+  let configurations = MinQueue(0, 0)
+  let visited = Set()
+  while (state, presses) = configurations.pop():
+    if !visited.add(state): continue
+    if state == lights: return presses
+    for button in buttons: configurations.push(state ^ button, presses + 1)
+
+input.lines()
+  .map(fewest_presses(it))
+  .sum()
+
+test """
+[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
+""" == 7
+test file("input.txt") == 498
