@@ -1,0 +1,45 @@
+fun xor(buttons: [int]) -> int:
+  let ans = 0
+  for button in buttons: ans = ans ^ button
+  ans
+
+fun fewest_presses(machine: string) -> int:
+  let (buttons, joltages) = machine.split_once("{")
+  buttons = buttons.split(" ")
+    .filter(it.starts_with("("))
+    .map(it.ints().to_list())
+    .to_list()
+  let button_masks = buttons.map(it.map(1 << it).sum()).to_list()
+
+  # pre-compute button combinations and store it by parity
+  let by_parity = Map(default = [])
+  for pressed in (0..=buttons.len()).flat_map(k => (0..buttons.len()).combinations(k)):
+    by_parity[xor(pressed.map(button_masks[it]).to_list())].push(pressed)
+
+  memo fun solve(target: [int]) -> int:
+    if target.all(it == 0): return 0
+    if target.any(it < 0): return -1
+
+    fun halve(pressed: [int]) -> int:
+      let half = target
+      for b in pressed: for p in buttons[b]: half[p] -= 1
+      for p in 0..half.len(): half[p] /= 2
+      let rest = solve(half)
+      if rest < 0 then -1 else pressed.len() + 2 * rest
+
+    let parity = target.enumerate().map((i, jolt) => jolt % 2 << i).sum()
+    if min = by_parity[parity].map(halve(it)).filter(it > 0).min(): return min
+    -1
+
+  solve(joltages.ints().to_list())
+
+input.lines()
+  .map(fewest_presses(it))
+  .sum()
+
+test """
+[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
+""" == 33
+test file("input.txt") == 17133

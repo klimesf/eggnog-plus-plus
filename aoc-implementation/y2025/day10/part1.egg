@@ -1,0 +1,29 @@
+fun xor(buttons: [int]) -> int:
+  buttons.scan(0, (acc, button) => acc ^ button).last()
+
+fun fewest_presses(machine: string) -> int:
+  let (lights, buttons) = machine.split_once(" ")
+  lights = lights.chars()
+    .filter(it in ['.', '#']).enumerate()
+    .map((i, c) => if c == '#' then 1 << i else 0)
+    .sum()
+  assert lights > 0
+  buttons = buttons.split(" ")
+    .filter(it.starts_with("("))
+    .map(it.ints().map(1 << it).sum())
+    .to_list()
+
+  # in an optimal solution each button is pressed at most once:
+  # two presses cancel out, so an odd count is the same as one press and an even count as none
+  (1..=buttons.len()).find(k => buttons.combinations(k).any(xor(it) == lights))
+
+input.lines()
+  .map(fewest_presses(it))
+  .sum()
+
+test """
+[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
+""" == 7
+test file("input.txt") == 498
