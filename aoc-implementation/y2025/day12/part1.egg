@@ -1,0 +1,8 @@
+# in the input, there are either regions which can fit all the presents
+# without packing or doesn't have enough spaces to fit all the #
+input.split("\n\n").last().lines()
+  .map(it.ints().to_list())
+  .count(it[0] * it[1] >= it[2..].sum() * 3 * 3)
+
+# the example needs packing, so not tested here
+test file("input.txt") == 521
