@@ -1,0 +1,24 @@
+let outputs = input.lines()
+  .map(it.split_once(": "))
+  .map((device, out) => (device, out.split(" ").to_list()))
+  .to_map()
+
+fun count_paths(device: string) -> int:
+  if device == "out": return 1
+  outputs[device].map(count_paths(it)).sum()
+
+count_paths("you")
+
+test """
+aaa: you hhh
+you: bbb ccc
+bbb: ddd eee
+ccc: ddd eee fff
+ddd: ggg
+eee: out
+fff: out
+ggg: out
+hhh: ccc fff iii
+iii: out
+""" == 5
+test file("input.txt") == 571
