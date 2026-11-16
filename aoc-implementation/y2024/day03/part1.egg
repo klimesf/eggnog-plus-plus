@@ -1,0 +1,39 @@
+enum State:
+  Enabled
+  First
+  Second
+
+let p = 0
+let state = Enabled
+let left = 0
+let right = 0
+let total = 0
+
+fun reset():
+  state = Enabled
+  left = 0
+  right = 0
+
+while p < input.len():
+  match state:
+    Enabled:
+      if input[p..].starts_with("mul("):
+        state = First
+        p += 4
+      else: p += 1
+    First:
+      if input[p].is_digit(): left = left * 10 + input[p].digit()
+      else if input[p] == ',': state = Second
+      else: reset()
+      p += 1
+    Second:
+      if input[p].is_digit(): right = right * 10 + input[p].digit()
+      else:
+        if input[p] == ')': total += left * right
+        reset()
+      p += 1
+
+total
+
+test "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))" == 161
+test file("input.txt") == 185797128
