@@ -1,0 +1,20 @@
+fun safe(report: [int]) -> bool:
+  let diffs = report.windows(2).map([a, b] => a - b).to_list()
+  diffs.all(it in -3..=-1) or diffs.all(it in 1..=3)
+
+fun safe_with_dampener(report: [int]) -> bool:
+  (0..report.len()).any(safe([report[0..it], report[it + 1..]].flat_map(it).to_list()))
+
+input.lines()
+  .map(it.ints().to_list())
+  .count(safe_with_dampener(it))
+
+test """
+7 6 4 2 1
+1 2 7 8 9
+9 7 6 2 1
+1 3 2 4 5
+8 6 4 4 1
+1 3 6 7 9
+""" == 4
+test file("input.txt") == 337
