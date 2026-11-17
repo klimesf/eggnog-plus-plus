@@ -1,0 +1,21 @@
+let grid = input.to_char_grid()
+
+fun xmas(pos: (int, int)) -> int:
+  if grid[pos] != 'X': return 0 # major speed-up
+  Dirs8.count(d => pos + 3 * d in grid and (1..4).all(grid[pos + it * d] == "XMAS"[it]))
+
+grid.positions().map(xmas(it)).sum()
+
+test """
+MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX
+""" == 18
+test file("input.txt") == 2532
