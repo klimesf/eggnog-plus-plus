@@ -1,0 +1,52 @@
+let (rules, updates) = input.split_once("\n\n")
+
+let predecessors = Map(default = Set())
+for (before, after) in rules.lines().map(it.split_once("|")):
+  predecessors[after.int()].add(before.int())
+
+fun correctly_ordered(update: [int]) -> bool:
+  (0..update.len()).all(update[it + 1..].intersection(predecessors[update[it]]).is_empty())
+
+fun reorder(update: [int]) -> [int]:
+  # the position in list is given by the amount of page's predecessors
+  # note: it works because the input has a rule for every pair of pages in an update
+  update.to_sorted(by = page => update.count(it in predecessors[page]))
+
+updates.lines()
+  .map(it.ints().to_list())
+  .filter(!correctly_ordered(it))
+  .map(reorder(it))
+  .map(it[it.len() / 2])
+  .sum()
+
+test """
+47|53
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,29
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47
+""" == 123
+test file("input.txt") == 5169
