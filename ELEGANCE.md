@@ -122,6 +122,18 @@ Inline a step that's used once. But when a named test checks that step, it has t
 
 - **2019 d10 part 2:** inlining `vaporize(station)` put the station and the sort into the test a second time. Keeping the function lets the test call the same code the answer comes from.
 
+## 17. Split a long condition with parentheses, not variables
+
+Lines inside open brackets continue freely, so wrap a long `and`/`or` in parentheses and put one alternative per line, each starting with its operator. Splitting it into `let` variables instead evaluates every part, while `or` stops at the first `true` and `and` at the first `false`. When the parts are recursive calls, that difference is the whole search.
+
+```
+(reachable(value + n, i + 1)
+  or reachable(value * n, i + 1)
+  or reachable((value.to_string() + n.to_string()).int(), i + 1))
+```
+
+- **2024 d7 part 2:** three `let`s took 13 s, the same `or` on one line 7 s. Early returns (`if reachable(…): return true`) also keep the short-circuit.
+
 ## The routine
 
 After the answer is accepted:
