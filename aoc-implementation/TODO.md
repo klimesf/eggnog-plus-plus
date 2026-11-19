@@ -8,6 +8,20 @@ From the 2026-11-06 review against ELEGANCE.md and LEARNINGS.md.
   - [ ] `algebra.egg`: drop the 6-argument `cramer` for `det()` plus a `with_column(matrix, col, values)` helper, so each unknown is one line: `let vx = det(with_column(left_side, 2, right_side)) / d`. Use it for the 2×2 systems of X, Y and Z too.
   - [ ] `part2.egg`: build the Z rows with a loop (or a small `fun`) like the 4×4 rows, instead of two hand-written rows with `xk…vzk`.
 
+## 2024 (from the 2026-11-17 to 2026-11-19 reviews)
+
+- [ ] **d3 (both parts):** rewrite as a lexer plus an evaluator, as practice for the interpreter.
+  - [ ] Lexer: tokens `Mul`, `LParen`, `Int(n)`, `Comma`, `RParen`, `Do`, `Dont` and `Other`. Look for `mul` at every position (don't read the longest word, or `do_not_mul(5,5)` is lost), emit `Other` for characters that fit nothing, and try `don't` before `do`.
+  - [ ] Parser: exactly `Mul LParen Int Comma Int RParen` in a row, each `Int` with 1 to 3 digits.
+  - [ ] Evaluator: a loop over the calls with an `enabled` flag; part 1 ignores `Do` and `Dont`.
+  - [ ] Add the test `mul(mul(2,3)` == 6: the current version consumes the character that ends a failed `mul(` and returns 0.
+- [ ] **d6 part 2** (30 s):
+  - [ ] Remember `(pos, dir)` only where the guard turns (measured: 20 s).
+  - [ ] Start each search right before the new obstacle: while walking the original path, record where the guard stood and which way it faced just before entering each cell for the first time (measured with both changes: 6.4 s).
+  - [ ] Elegance: `let next = position + Dirs4[direction]` at the top of the loop instead of three `Dirs4[direction]`.
+  - [ ] Hint: the guard moves in straight lines until it hits something. How many steps does each straight run need if you know, for every row and column, where the obstacles are? The one new obstacle is the only thing that changes in each search.
+- [ ] **d7 part 2** (7.7 s): hint: think about the last operator. Working forwards, all three always apply. Starting from the test value, when can the last one have been `*`? And when `||`? (measured: 60 ms)
+
 ## Built-ins (rule 3)
 
 - [x] `.filter(p).count()` → `.count(p)`: 2022 d4 (both parts), 2023 d6 part 1, 2023 d10 part 2, 2023 d11 (both parts).
