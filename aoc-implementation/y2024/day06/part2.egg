@@ -1,0 +1,45 @@
+let grid = input.to_char_grid()
+let position = grid.find('^')
+let direction = 0
+let path = Set(position)
+
+while true:
+  if position + Dirs4[direction] !in grid: break
+  if grid[position + Dirs4[direction]] == '#': direction = (direction + 1) % 4
+  else:
+    position += Dirs4[direction]
+    path.add(position)
+
+# try to add obstacle to every point on the original path
+let total = 0
+for p in path:
+  if grid[p] == '^': continue
+  let obstructed = grid
+  obstructed[p] = '#'
+  let pos = obstructed.find('^')
+  let dir = 0
+  let visited = Set()
+
+  while true:
+    if !visited.add((pos, dir)):
+      total += 1 # we are in a loop
+      break
+    if pos + Dirs4[dir] !in obstructed: break
+    if obstructed[pos + Dirs4[dir]] == '#': dir = (dir + 1) % 4
+    else: pos += Dirs4[dir]
+
+total
+
+test """
+....#.....
+.........#
+..........
+..#.......
+.......#..
+..........
+.#..^.....
+........#.
+#.........
+......#...
+""" == 6
+test file("input.txt") == 1602

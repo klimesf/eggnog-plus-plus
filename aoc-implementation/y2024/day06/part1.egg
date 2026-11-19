@@ -1,0 +1,27 @@
+let grid = input.to_char_grid()
+let position = grid.find('^')
+let direction = 0
+let visited = Set(position)
+
+while true:
+  if position + Dirs4[direction] !in grid: break
+  if grid[position + Dirs4[direction]] == '#': direction = (direction + 1) % 4
+  else:
+    position += Dirs4[direction]
+    visited.add(position)
+
+visited.len()
+
+test """
+....#.....
+.........#
+..........
+..#.......
+.......#..
+..........
+.#..^.....
+........#.
+#.........
+......#...
+""" == 41
+test file("input.txt") == 4722
