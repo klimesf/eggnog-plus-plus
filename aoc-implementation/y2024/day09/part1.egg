@@ -1,0 +1,21 @@
+let disk = []
+
+for (i, d) in input.chars().map(it.digit()).enumerate():
+  if i % 2 == 0: for _ in 0..d: disk.push(i / 2)
+  else: for _ in 0..d: disk.push(-1)
+
+let last = disk.len() - 1
+let p = 0
+while p < last:
+  if disk[p] != -1:
+    p += 1
+    continue
+  disk[p] = disk[last]
+  disk[last] = -1
+  p += 1
+  while disk[last] == -1: last -= 1
+
+disk.enumerate().map((i, id) => if id == -1 then 0 else i * id).sum()
+
+test "2333133121414131402" == 1928
+test file("input.txt") == 6337367222422

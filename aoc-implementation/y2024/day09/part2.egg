@@ -1,0 +1,26 @@
+let files = []
+let free = []
+
+let pos = 0
+for (i, d) in input.chars().map(it.digit()).enumerate():
+  if i % 2 == 0: files.push((pos, pos + d, i / 2))
+  else: free.push((pos, pos + d))
+  pos += d
+
+let first = [0] * 10
+for i in (0..files.len()).rev():
+  let (from_i, to_i, id) = files[i]
+  let size = to_i - from_i
+  for j in first[size]..free.len():
+    let (from_j, to_j) = free[j]
+    if from_j >= from_i: break
+    if to_j - from_j < size: continue
+    first[size] = j
+    files[i] = (from_j, from_j + size, id)
+    free[j] = (from_j + size, to_j)
+    break
+
+files.map((from, to, id) => (from..to).map(it * id).sum()).sum()
+
+test "2333133121414131402" == 2858
+test file("input.txt") == 6361380647183
