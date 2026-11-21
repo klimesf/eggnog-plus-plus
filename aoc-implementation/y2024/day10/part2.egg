@@ -1,0 +1,24 @@
+let grid = input.to_digit_grid()
+
+let steps = grid.positions().filter(grid[it] == 0).to_list()
+let sum = 0
+while pos = steps.pop():
+  if grid[pos] == 9:
+    sum += 1
+    continue
+  for d in Dirs4:
+    if pos + d !in grid or grid[pos + d] - grid[pos] != 1: continue
+    steps.push(pos + d)
+sum
+
+test """
+89010123
+78121874
+87430965
+96549874
+45678903
+32019012
+01329801
+10456732
+""" == 81
+test file("input.txt") == 1225

@@ -1,0 +1,28 @@
+let grid = input.to_digit_grid()
+
+let steps = grid.positions()
+  .filter(grid[it] == 0)
+  .map((it, it))
+  .to_list()
+
+let score = Set()
+while (head, pos) = steps.pop():
+  if grid[pos] == 9:
+    score.add((head, pos))
+    continue
+  for d in Dirs4:
+    if pos + d !in grid or grid[pos + d] - grid[pos] != 1: continue
+    steps.push((head, pos + d))
+score.len()
+
+test """
+89010123
+78121874
+87430965
+96549874
+45678903
+32019012
+01329801
+10456732
+""" == 36
+test file("input.txt") == 552
