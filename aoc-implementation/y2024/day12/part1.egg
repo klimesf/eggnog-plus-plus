@@ -1,0 +1,48 @@
+fun fence(pos: (int, int), neighbor: (int, int)) -> bool:
+  neighbor !in grid or grid[pos] != grid[neighbor]
+
+let grid = input.to_char_grid()
+let cost = 0
+let visited = Set()
+for start in grid.positions():
+  if start in visited: continue
+  let area = 0
+  let perimeter = 0
+  let stack = Stack(start)
+  while pos = stack.pop():
+    if !visited.add(pos): continue
+    area += 1
+    for d in Dirs4:
+      let neighbor = pos + d
+      if fence(pos, neighbor): perimeter += 1
+      else: stack.push(neighbor)
+  cost += area * perimeter
+
+cost
+
+test """
+AAAA
+BBCD
+BBCC
+EEEC
+""" == 140
+test """
+OOOOO
+OXOXO
+OOOOO
+OXOXO
+OOOOO
+""" == 772
+test """
+RRRRIICCFF
+RRRRIICCCF
+VVRRRCCFFF
+VVRCCCJFFF
+VVVVCJJCFE
+VVIVCCJJEE
+VVIIICJJEE
+MIIIIIJJEE
+MIIISIJEEE
+MMMISSJEEE
+""" == 1930
+test file("input.txt") == 1431440

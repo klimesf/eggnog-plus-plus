@@ -1,0 +1,65 @@
+fun fence(pos: (int, int), neighbor: (int, int)) -> bool:
+  neighbor !in grid or grid[pos] != grid[neighbor]
+
+fun sides(units: [(int, int)]) -> int:
+  units.windows(2).count([a, b] => a - b != 2 * Left) + 1  
+  
+let grid = input.to_char_grid()
+let cost = 0
+let visited = Set()
+for start in grid.positions():
+  if start in visited: continue
+  let area = 0
+  let horizontal = []
+  let vertical = []
+  let stack = Stack(start)
+  while pos = stack.pop():
+    if !visited.add(pos): continue
+    area += 1
+
+    if fence(pos, pos + Up): horizontal.push(2 * pos)
+    else: stack.push(pos + Up)
+
+    if fence(pos, pos + Down): horizontal.push(2 * pos + Down)
+    else: stack.push(pos + Down)
+
+    if fence(pos, pos + Left): vertical.push(2 * pos)
+    else: stack.push(pos + Left)
+
+    if fence(pos, pos + Right): vertical.push(2 * pos + Right)
+    else: stack.push(pos + Right)
+
+  horizontal.sort()
+  vertical = vertical.map((r, c) => (c, r)).to_sorted()
+
+  cost += area * (sides(horizontal) + sides(vertical))
+
+cost
+
+test """
+AAAA
+BBCD
+BBCC
+EEEC
+""" == 80
+test """
+AAAAAA
+AAABBA
+AAABBA
+ABBAAA
+ABBAAA
+AAAAAA
+""" == 368
+test """
+RRRRIICCFF
+RRRRIICCCF
+VVRRRCCFFF
+VVRCCCJFFF
+VVVVCJJCFE
+VVIVCCJJEE
+VVIIICJJEE
+MIIIIIJJEE
+MIIISIJEEE
+MMMISSJEEE
+""" == 1206
+test file("input.txt") == 869070

@@ -63,6 +63,16 @@ In 2024 d17 part 2, each loop of the program shifts A right by 3 and prints one 
 
 2023 d24 part 2 (a rock that hits 300 hailstones) looks like it needs a solver: each hailstone adds its own collision time, and the time multiplies the rock's unknown velocity. Remove the time within one hailstone (multiply its x equation by the y factor and the other way round, without dividing, so a matching speed can't break it), and the products of two unknowns left over (`X·VY`, `Y·VX`) are the same for every hailstone, so subtracting two hailstones' equations cancels them. That leaves linear equations, one per pair. Before solving, estimate the sizes: Cramer's determinant for an unknown replaces its column with the right-hand side (here positions × velocities, about 10¹⁷). Replacing a column of small numbers (velocity differences) with it overflowed even 128 bits for X and Y; replacing a column of big ones fit for VX and VY. So solve the velocities first, then put them back and solve X, Y and Z as 2×2 systems with small numbers. Fraction-free Gaussian elimination keeps intermediate values the same size as Cramer's, so it doesn't change what fits. Check that every division is exact: a remainder means bad hailstones or a mistake.
 
+## Double the coordinates to give the gaps between cells their own positions
+
+When something lives between cells (a gap between pipes, a fence between plots, a boundary a ray must not touch), double every coordinate: cells land on even positions, and the gaps between them on odd ones, so they get their own positions to store, search or compare.
+
+- **2023 d10 part 2:** the enclosed tiles can be reached by squeezing between two pipes. In a doubled grid, the loop's tiles sit at `2 * pos`, the connection between two tiles at `2 * pos + dir`, and a flood fill from the edge walks through the gaps without any special rule.
+- **2024 d12 part 2:** a fence on top of a cell and a fence under the cell above it lie on the same grid line, but they face opposite ways, and only fences facing the same way join into one side. Storing a top fence at `2 * pos` and a bottom fence at `2 * pos + Down` puts them on different rows (10 and 9 for the line between rows 4 and 5), so sorting and counting the breaks no longer merges them. Without it, the example where two `B` regions touch at a corner gave 312 instead of 368.
+- **2025 d9 part 2:** a ray cast from an odd position in the doubled grid can never land exactly on the boundary.
+
+The doubled position needs a comment: `2 * pos + Down` doesn't say why the `+ Down` is there.
+
 ## Don't simulate what you can compute
 
 - **Huge repetition counts** (2023 d14, a billion cycles): find where the state repeats and jump ahead with `%`. Save each step's answer as you go, so you don't have to replay the cycles to reach it.
