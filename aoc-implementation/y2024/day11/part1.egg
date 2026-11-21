@@ -1,0 +1,14 @@
+fun blink(stone: int) -> [int]:
+  if stone == 0: return [1]
+  let digits = stone.digits().count()
+  let half = pow(10, digits / 2)
+  if digits % 2 == 0 then [stone / half, stone % half] else [stone * 2024]
+
+memo fun count(stone: int, blinks: int) -> int:
+  if blinks == 0: return 1
+  blink(stone).map(count(it, blinks - 1)).sum()
+
+input.ints().map(count(it, 25)).sum()
+
+test "125 17" == 55312
+test file("input.txt") == 198089
