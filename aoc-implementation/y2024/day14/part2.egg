@@ -1,0 +1,18 @@
+fun spread(values: [int]) -> int:
+  # variance = Σx²/n − (Σx/n)²
+  # to avoid division -> n²·variance = n·Σx² − (Σx)²
+  values.len() * values.map(it * it).sum() - pow(values.sum(), 2)
+
+# find the time when the robots are bunched up the most around an axis, that is our easter egg
+# it only checks times from 0 to the size of each dimension, that's the period in which values repeat
+fun bunched(robots: [[int]], axis: int, size: int) -> int:
+  (0..size)
+    .to_sorted(by = time => spread(robots.map((it[axis] + time * it[axis + 2]) % size).to_list()))
+    .first()
+
+let robots = input.lines().map(it.ints().to_list()).to_list()
+let x_time = bunched(robots, 0, 101)
+let y_time = bunched(robots, 1, 103)
+(0..103).map(it * 101 + x_time).find(it % 103 == y_time)
+
+test file("input.txt") == 6243
