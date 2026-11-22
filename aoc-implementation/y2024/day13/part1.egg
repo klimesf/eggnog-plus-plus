@@ -1,0 +1,35 @@
+fun cramer(a: int, b: int, c: int, d: int, e: int, f: int) -> (int, int, int):
+  (a * e - b * d, c * e - b * f, a * f - c * d)
+
+fun tokens(machine: string) -> int:
+  let [ax, ay, bx, by, px, py] = machine.ints().to_list()
+  let (d, da, db) = cramer(ax, bx, px, ay, by, py)
+  if da % abs(d) != 0 or db % abs(d) != 0: return 0 # only integer solutions allowed
+  let a = da / d
+  let b = db / d
+  if a < 0 or a > 100 or b < 0 or b > 100: return 0
+  a * 3 + b
+
+input
+  .split("\n\n")
+  .map(tokens(it))
+  .sum()
+
+test """
+Button A: X+94, Y+34
+Button B: X+22, Y+67
+Prize: X=8400, Y=5400
+
+Button A: X+26, Y+66
+Button B: X+67, Y+21
+Prize: X=12748, Y=12176
+
+Button A: X+17, Y+86
+Button B: X+84, Y+37
+Prize: X=7870, Y=6450
+
+Button A: X+69, Y+23
+Button B: X+27, Y+71
+Prize: X=18641, Y=10279
+""" == 480
+test file("input.txt") == 33481
