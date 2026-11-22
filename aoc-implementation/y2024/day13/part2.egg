@@ -1,5 +1,4 @@
-fun cramer(a: int, b: int, c: int, d: int, e: int, f: int) -> (int, int, int):
-  (a * e - b * d, c * e - b * f, a * f - c * d)
+import cramer from "../../algebra.egg"
 
 fun tokens(machine: string) -> int:
   let [ax, ay, bx, by, px, py] = machine.ints().to_list()

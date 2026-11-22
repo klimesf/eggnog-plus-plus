@@ -1,4 +1,4 @@
-import cramer, det4 from "algebra.egg"
+import cramer, det4 from "../../algebra.egg"
 
 # xi + vxi * ti = X + VX * ti
 # yi + vyi * ti = Y + VY * ti

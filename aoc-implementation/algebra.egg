@@ -4,6 +4,10 @@ fun submatrix(matrix: [[int]], row: int, col: int) -> [[int]]:
     .map((_, r) => r.enumerate().filter((i, _) => i != col).map((_, c) => c).to_list())
     .to_list()
 
+# Solves:
+# a·x + b·y = c
+# d·x + e·y = f
+# Returns: (det, x * det, y * det)
 fun cramer(a: int, b: int, c: int, d: int, e: int, f: int) -> (int, int, int):
   (a * e - b * d, c * e - b * f, a * f - c * d)
 

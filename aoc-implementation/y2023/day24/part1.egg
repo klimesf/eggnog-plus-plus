@@ -1,8 +1,7 @@
+import cramer from "../../algebra.egg"
+
 let test_area_from = 200000000000000
 let test_area_to = 400000000000000
-
-fun cramer(a: int, b: int, c: int, d: int, e: int, f: int) -> (int, int, int):
-  (a * e - b * d, c * e - b * f, a * f - c * d)
 
 fun collides(a: [int], b: [int]) -> bool:
   let (d, dx, dy) = cramer(a[3], -b[3], b[0] - a[0], a[4], -b[4], b[1] - a[1])
