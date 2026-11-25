@@ -1,0 +1,65 @@
+let grid = input.to_char_grid()
+
+let start = grid.find('S')
+let east = Dirs4.position(it == Right)
+let queue = MinQueue((start, east), 0)
+let mins = Map(default = int::Max)
+let min_score = int::Max
+while ((pos, dir), score) = queue.pop():
+  if min_score < score: break
+  if grid[pos] == '#' or mins[(pos, dir)] <= score: continue
+  mins[(pos, dir)] = score
+  if grid[pos] == 'E':
+    min_score = score
+    continue
+  queue.push((pos + Dirs4[dir], dir), score + 1)
+  for d in [(dir + 1) % 4, (dir - 1) % 4]: if grid[pos + Dirs4[d]] != '#': queue.push((pos, d), score + 1000)
+
+let on_best_path = Set()
+let stack = []
+let end = grid.find('E')
+for d in (0..4).filter((end, it) in mins): stack.push((end, d, mins[(end, d)]))
+while (pos, dir, score) = stack.pop():
+  on_best_path.add(pos)
+  if mins[(pos - Dirs4[dir], dir)] == score - 1: stack.push((pos - Dirs4[dir], dir, score - 1))
+  for d in [(dir + 1) % 4, (dir - 1) % 4]: if mins[(pos, d)] == score - 1000: stack.push((pos, d, score - 1000))
+
+on_best_path.len()
+
+test """
+###############
+#.......#....E#
+#.#.###.#.###.#
+#.....#.#...#.#
+#.###.#####.#.#
+#.#.#.......#.#
+#.#.#####.###.#
+#...........#.#
+###.#.#####.#.#
+#...#.....#.#.#
+#.#.#.###.#.#.#
+#.....#...#.#.#
+#.###.#.#.#.#.#
+#S..#.....#...#
+###############
+""" == 45
+test """
+#################
+#...#...#...#..E#
+#.#.#.#.#.#.#.#.#
+#.#.#.#...#...#.#
+#.#.#.#.###.#.#.#
+#...#.#.#.....#.#
+#.#.#.#.#.#####.#
+#.#...#.#.#.....#
+#.#.#####.#.###.#
+#.#.#.......#...#
+#.#.###.#####.###
+#.#.#...#.....#.#
+#.#.#.#####.###.#
+#.#.#.........#.#
+#.#.#.#########.#
+#S#.............#
+#################
+""" == 64
+test file("input.txt") == 483
