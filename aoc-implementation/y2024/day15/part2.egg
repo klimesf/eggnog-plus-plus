@@ -1,0 +1,78 @@
+fun widen(c: char) -> string:
+  match c:
+    '.': ".."
+    '@': "@."
+    '#': "##"
+    'O': "[]"
+    '\n': "\n"
+
+fun direction(instruction: char) -> (int, int):
+  match instruction:
+    '^': Up
+    '>': Right
+    'v': Down
+    '<': Left
+
+let (grid, instructions) = input.split_once("\n\n")
+let grid = grid.chars()
+  .map(widen(it))
+  .to_string()
+  .to_char_grid()
+
+let robot = grid.find('@')
+for dir in instructions.chars().filter(it != '\n').map(direction(it)):
+  let next = [robot]
+  let to_move = []
+  let visited = Set()
+  while pos = next.pop():
+    if !visited.add(pos) or grid[pos] in ['.', '#']: continue
+    to_move.push((pos, grid[pos]))
+    next.push(pos + dir)
+    if dir in [Up, Down] and grid[pos] == '[': next.push(pos + Right)
+    if dir in [Up, Down] and grid[pos] == ']': next.push(pos + Left)
+
+  if to_move.any((pos, _) => grid[pos + dir] == '#'): continue
+  for (pos, _) in to_move: grid[pos] = '.'
+  for (pos, c) in to_move: grid[pos + dir] = c
+  robot += dir
+
+grid.positions()
+  .filter(grid[it] == '[')
+  .map((r, c) => 100 * r + c)
+  .sum()
+
+test """
+#######
+#...#.#
+#.....#
+#..OO@#
+#..O..#
+#.....#
+#######
+
+<vv<<^^<<^^
+""" == 618
+test """
+##########
+#..O..O.O#
+#......O.#
+#.OO..O.O#
+#..O@..O.#
+#O#..O...#
+#O..O..O.#
+#.OO.O.OO#
+#....O...#
+##########
+
+<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
+vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
+><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
+<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
+^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
+^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
+>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
+<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
+^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
+v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
+""" == 9021
+test file("input.txt") == 1512860
