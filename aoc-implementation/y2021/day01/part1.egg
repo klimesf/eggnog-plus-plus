@@ -1,0 +1,15 @@
+input.ints().windows(2).count([a, b] => b > a)
+
+test """
+199
+200
+208
+210
+200
+207
+240
+269
+260
+263
+""" == 7
+test file("input.txt") == 1400

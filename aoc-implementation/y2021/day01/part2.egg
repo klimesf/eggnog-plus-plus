@@ -1,0 +1,18 @@
+input.ints()
+  .windows(3)
+  .windows(2)
+  .count([a, b] => b.sum() > a.sum())
+
+test """
+199
+200
+208
+210
+200
+207
+240
+269
+260
+263
+""" == 5
+test file("input.txt") == 1429
