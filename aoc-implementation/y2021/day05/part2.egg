@@ -1,0 +1,24 @@
+let counts = Map(default = 0)
+
+for vent in input.lines():
+  let [x1, y1, x2, y2] = vent.ints().to_list()
+  let dx = if x1 < x2 then 1 else if x1 == x2 then 0 else -1
+  let dy = if y1 < y2 then 1 else if y1 == y2 then 0 else -1
+  let diff = max(abs(x2 - x1), abs(y2 - y1))
+  for i in 0..=diff: counts[(x1 + i * dx, y1 + i * dy)] += 1
+
+counts.values().count(it > 1)
+
+test """
+0,9 -> 5,9
+8,0 -> 0,8
+9,4 -> 3,4
+2,2 -> 2,1
+7,0 -> 7,4
+6,4 -> 2,0
+0,9 -> 2,9
+3,4 -> 1,4
+0,0 -> 8,8
+5,5 -> 8,2
+""" == 12
+test file("input.txt") == 21577
