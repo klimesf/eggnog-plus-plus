@@ -1,0 +1,44 @@
+fun shortest_path(bytes: [string], fallen: int, size: int) -> int:
+  let grid = Grid(size + 1, size + 1, '.')
+  for [x, y] in bytes.take(fallen).map(it.ints().to_list()): grid[(y, x)] = '#'
+
+  let visited = Set()
+  let queue = Queue(((0, 0), 0))
+  while (pos, steps) = queue.pop():
+    if pos !in grid or grid[pos] != '.' or !visited.add(pos): continue
+    if pos == (size, size): return steps
+    for d in Dirs4: queue.push((pos + d, steps + 1))
+
+shortest_path(input.lines().to_list(), 1024, 70)
+
+test "shortest path":
+  let bytes = """
+  5,4
+  4,2
+  4,5
+  3,0
+  2,1
+  6,3
+  2,4
+  1,5
+  0,6
+  3,3
+  2,6
+  5,1
+  1,2
+  5,5
+  2,5
+  6,5
+  1,4
+  0,4
+  6,4
+  1,1
+  6,1
+  1,0
+  0,5
+  1,6
+  2,0
+  """
+  assert shortest_path(bytes.lines().to_list(), 12, 6) == 22
+
+test file("input.txt") == 374
