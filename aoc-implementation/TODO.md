@@ -23,6 +23,17 @@ From the 2026-11-06 review against ELEGANCE.md and LEARNINGS.md.
 - [ ] **d13 (both parts):** import `cramer` from the shared `algebra.egg` instead of copying it. Add a comment that the determinant is never 0 in the input (`% abs(d)` would stop with an error). Write `3 * a + b` in the puzzle's order. In part 2, test what the puzzle says about the example (only the 2nd and 4th machines win) instead of a total you computed.
 - [ ] **d7 part 2** (7.7 s): hint: think about the last operator. Working forwards, all three always apply. Starting from the test value, when can the last one have been `*`? And when `||`? (measured: 60 ms)
 
+## 2021 (from the 2026-11-28 review)
+
+- [ ] **d4 (both parts), a bug:** a board with an unmarked 0 can win too early. Add this test: numbers `1,2,3,4,10`, board 1 starting with the row `0 1 2 3 4` (other rows 50–69), board 2 starting with `1 2 3 4 10` (other rows 70–89). It should give 15900; part 1 now gives 4760.
+  - [ ] Hint: does marking a number need to change the board at all?
+  - [ ] Speed (616 ms and 1.85 s): how often does the win check run for each number drawn?
+- [ ] **d2 (both parts):** `let (command, amount) = line.split_once(" ")` and a `match command` instead of the hand-counted `line[8..]`, `[5..]` and `[3..]`. The `else` now takes any unknown command as "up".
+- [ ] **d3 part 2:** one `rating(numbers, pos, most_common: bool)` instead of two functions that differ only in which bit they keep (rule 2). Typo: `scubber` → `scrubber`.
+- [ ] **d3 part 1** (optional): epsilon is gamma with every bit flipped, so build only one of them.
+- [ ] **d5 part 1:** use part 2's loop and skip diagonals with `if x1 != x2 and y1 != y2: continue` (rule 12).
+- [ ] **d1 part 2** (optional): neighbouring windows share two numbers, so `.windows(4).count([a, _, _, d] => d > a)`.
+
 ## Built-ins (rule 3)
 
 - [x] `.filter(p).count()` → `.count(p)`: 2022 d4 (both parts), 2023 d6 part 1, 2023 d10 part 2, 2023 d11 (both parts).
