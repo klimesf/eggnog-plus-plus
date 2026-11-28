@@ -169,6 +169,8 @@ test "height":
   assert height() == 3
 ```
 
+A failed `assert` whose condition is a comparison shows both sides, each evaluated once: `assert shortest_path(bytes, 12, 6) == 22` fails with `assertion failed: expected 22, got 24`, the same order as a failed `test x == y`, and `assert a < b` with `assertion failed: 7 < 3 is false`. Other conditions (`and`, `in`, a bool call) just say `assertion failed`.
+
 The test must define every script variable that the functions it calls use, directly or through other calls, with the same type; a missing one is a compile error naming the variable. Variables used only by functions the test never reaches don't need to be defined.
 
 ## Built-in constants

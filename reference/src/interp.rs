@@ -595,6 +595,23 @@ impl Interp {
             }
             StmtKind::Test { .. } | StmtKind::TestBlock { .. } | StmtKind::Import { .. } => Ok(Flow::Normal(None)),
             StmtKind::Assert(e) => {
+                // A failed comparison shows both sides, like a failed `test x == y`.
+                if let ExprKind::Binary(op, l, r) = &e.kind {
+                    if let Some(symbol) = comparison_symbol(*op) {
+                        let a = self.eval(l)?;
+                        let b = self.eval(r)?;
+                        let holds = builtins::binary(*op, a.clone(), b.clone(), e.span)?;
+                        if let Value::Bool(true) = holds {
+                            return Ok(Flow::Normal(None));
+                        }
+                        let message = if *op == BinOp::Eq {
+                            format!("assertion failed: expected {}, got {}", b.repr(), a.repr())
+                        } else {
+                            format!("assertion failed: {} {symbol} {} is false", a.repr(), b.repr())
+                        };
+                        return Err(Error::runtime(message, e.span));
+                    }
+                }
                 if self.truthy(e)? {
                     Ok(Flow::Normal(None))
                 } else {
@@ -1287,6 +1304,19 @@ pub enum StageState {
     Count(i128),
     Acc(Value),
     Buf(VecDeque<Value>),
+}
+
+/// The operator as written, for the comparisons whose failed `assert` shows both sides.
+fn comparison_symbol(op: BinOp) -> Option<&'static str> {
+    match op {
+        BinOp::Eq => Some("=="),
+        BinOp::Ne => Some("!="),
+        BinOp::Lt => Some("<"),
+        BinOp::Le => Some("<="),
+        BinOp::Gt => Some(">"),
+        BinOp::Ge => Some(">="),
+        _ => None,
+    }
 }
 
 fn zip_mismatch(left: usize, right: usize, span: Span) -> Error {

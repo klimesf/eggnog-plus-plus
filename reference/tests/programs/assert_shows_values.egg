@@ -1,0 +1,5 @@
+fun steps() -> int:
+  20 + 4
+
+assert steps() == 22
+0
