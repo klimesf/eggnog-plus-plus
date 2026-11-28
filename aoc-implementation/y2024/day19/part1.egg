@@ -1,0 +1,26 @@
+let (towels, designs) = input.split_once("\n\n")
+let towels = towels.split(", ").to_set()
+let max_len = towels.map(it.len()).max()
+
+fun is_possible(design: string) -> bool:
+  if design == "": return true
+  for i in 1..=min(design.len(), max_len):
+    if design[0..i] in towels and is_possible(design[i..]):
+      return true
+  false
+
+designs.lines().count(is_possible(it))
+
+test """
+r, wr, b, g, bwu, rb, gb, br
+
+brwrr
+bggr
+gbbr
+rrbgbr
+ubwu
+bwurrg
+brgr
+bbrgwb
+""" == 6
+test file("input.txt") == 209

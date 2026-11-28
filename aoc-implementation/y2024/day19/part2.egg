@@ -1,0 +1,26 @@
+let (towels, designs) = input.split_once("\n\n")
+let towels = towels.split(", ").to_set()
+let max_len = towels.map(it.len()).max()
+
+memo fun arrangements(design: string) -> int:
+  if design == "": return 1
+  (1..=min(design.len(), max_len))
+    .filter(design[0..it] in towels)
+    .map(arrangements(design[it..]))
+    .sum()
+
+designs.lines().map(arrangements(it)).sum()
+
+test """
+r, wr, b, g, bwu, rb, gb, br
+
+brwrr
+bggr
+gbbr
+rrbgbr
+ubwu
+bwurrg
+brgr
+bbrgwb
+""" == 16
+test file("input.txt") == 777669668613191
